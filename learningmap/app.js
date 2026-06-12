@@ -189,7 +189,8 @@ function checkURLParameters() {
       appState.sheetUrl = sheetParam;
       fetchSheetData(sheetParam);
     } else {
-      loadSampleCSV();
+      stopSheetAutoRefresh();
+      showUnboundStudentState('此學生頁尚未綁定 Google Sheet，請改用教師頁產生含 sheet 參數的分享連結。');
     }
     return true;
   }
@@ -525,6 +526,25 @@ function hideSheetTabsUI() {
 
   const rightTabsContainer = document.getElementById('right-sheet-tabs-container');
   if (rightTabsContainer) rightTabsContainer.style.display = 'none';
+}
+
+function showUnboundStudentState(message) {
+  appState.rawCSV = '';
+  appState.parsedItems = [];
+  appState.selectedItem = null;
+  appState.checkedRanks.clear();
+  appState.sheetTabs = [];
+  hideSheetTabsUI();
+
+  const treeContainer = document.getElementById('tree-container');
+  if (treeContainer) {
+    treeContainer.innerHTML = `<div class="empty-state"><p>${message}</p></div>`;
+  }
+
+  const itemCount = document.getElementById('item-count');
+  if (itemCount) itemCount.innerText = '0 個項目';
+
+  showItemDetail(null);
 }
 
 // User clicked a tab to load a different sheet tab
