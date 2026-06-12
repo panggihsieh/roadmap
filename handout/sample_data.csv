@@ -1,4 +1,4 @@
-rank,category,name,url,description
+﻿rank,category,name,url,description
 1,AI 核心觀念/機器學習基礎,機器學習簡介投影片,https://example.com/ml-intro-slides,介紹什麼是機器學習、監督式與非監督式學習的區別。
 2,AI 核心觀念/機器學習基礎,線性回歸與分類實作,https://example.com/ml-basic-colab,Google Colab 實作：使用 Scikit-Learn 進行房價預測與鳶尾花分類。
 3,AI 核心觀念/深度學習導論,神經網路基礎觀念,https://example.com/nn-basics,理解神經元、激活函數（ReLU, Sigmoid）以及前向與反向傳播。
