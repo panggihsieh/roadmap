@@ -4,12 +4,12 @@
 
 ## 📂 專案結構
 
-本專案所有的網頁程式碼與範例資料皆位於 [handout/](handout/) 目錄下：
+本專案所有的網頁程式碼與範例資料皆位於 [learningmap/](learningmap/) 目錄下：
 
-* **[handout/index.html](handout/index.html)** - 前端主要結構與雙模式視圖
-* **[handout/style.css](handout/style.css)** - 現代化玻璃擬物樣式、字體優化與 A4 PDF 列印排版
-* **[handout/app.js](handout/app.js)** - 階層樹狀結構解析、雙向連動勾選、PDF 下拉選單與獨立學生網頁連結產生器
-* **[handout/sample_data.csv](handout/sample_data.csv)** - 預設載入之 Andrej Karpathy 訓練心法與 AI 基本觀念範例 CSV
+* **[learningmap/index.html](learningmap/index.html)** - 前端主要結構與雙模式視圖
+* **[learningmap/style.css](learningmap/style.css)** - 現代化玻璃擬物樣式、字體優化與 A4 PDF 列印排版
+* **[learningmap/app.js](learningmap/app.js)** - 階層樹狀結構解析、雙向連動勾選、PDF 下拉選單與獨立學生網頁連結產生器
+* **[learningmap/sample_data.csv](learningmap/sample_data.csv)** - 預設載入之 Andrej Karpathy 訓練心法與 AI 基本觀念範例 CSV
 
 ## ✨ 功能亮點
 
@@ -35,4 +35,4 @@
 python -m http.server 8000
 ```
 
-接著在瀏覽器打開 `http://localhost:8000/handout/index.html` 即可進行預覽。
+接著在瀏覽器打開 `http://localhost:8000/learningmap/index.html` 即可進行預覽。
