@@ -578,8 +578,8 @@ body.mode-teacher #panel-teacher {
 }
 
 .node-toggle-icon {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1068,8 +1068,8 @@ body.mode-teacher #panel-teacher {
 }
 
 .icon-only-btn {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   padding: 0;
   display: inline-flex;
   align-items: center;

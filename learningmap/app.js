@@ -683,7 +683,7 @@ function createTreeNodeDOM(node) {
     const toggleIcon = document.createElement('span');
     toggleIcon.className = 'node-toggle-icon expanded';
     toggleIcon.innerHTML = `
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="9 18 15 12 9 6"></polyline>
       </svg>
     `;
