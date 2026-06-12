@@ -189,8 +189,12 @@ function checkURLParameters() {
       appState.sheetUrl = sheetParam;
       fetchSheetData(sheetParam);
     } else {
-      stopSheetAutoRefresh();
-      showUnboundStudentState('此學生頁尚未綁定 Google Sheet，請改用教師頁產生含 sheet 參數的分享連結。');
+      if (isGoogleSheetUrl(appState.sheetUrl)) {
+        fetchSheetData(appState.sheetUrl);
+      } else {
+        stopSheetAutoRefresh();
+        showUnboundStudentState('此學生頁尚未綁定 Google Sheet，請改用教師頁產生含 sheet 參數的分享連結。');
+      }
     }
     return true;
   }
