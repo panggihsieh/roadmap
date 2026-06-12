@@ -97,7 +97,7 @@ function initDOMBindings() {
   titleInput.value = appState.workshopTitle;
   sheetInput.value = appState.sheetUrl;
   suppInput.value = appState.supplementaryInfo;
-  csvRawInput.value = appState.rawCSV;
+  if (csvRawInput) csvRawInput.value = appState.rawCSV;
 
   // Header Title
   const headerTitle = document.getElementById('header-workshop-title');

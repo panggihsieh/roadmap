@@ -109,24 +109,6 @@
         <small class="tip-text" style="color: var(--success-color);">將此連結提供給學生，他們將只能看到學生頁面，並自動隱藏教師後台入口。</small>
       </div>
 
-      <div class="divider"><span>或使用其他載入方式</span></div>
-
-      <div class="form-group actions-row">
-        <button id="btn-load-sample" class="control-btn secondary-btn" onclick="loadSampleCSV()">
-          載入本地範例 CSV
-        </button>
-        <label class="control-btn secondary-btn file-label">
-          <input type="file" id="input-file-csv" accept=".csv" onchange="handleFileSelect(event)">
-          上傳本機 CSV
-        </label>
-      </div>
-
-      <div class="form-group">
-        <label for="input-csv-raw">手動貼上 CSV 資料</label>
-        <textarea id="input-csv-raw" placeholder="rank,category,name,url,description&#10;1,單元一,項目名稱,https://...,說明內容"></textarea>
-        <button id="btn-parse-raw" class="control-btn w-full" onclick="parseRawCSV()">解析並更新樹狀圖</button>
-      </div>
-
       <div class="form-group">
         <label for="input-supplement">補充內容說明</label>
         <textarea id="input-supplement" placeholder="可以輸入關於此學習地圖的補充說明、聯絡資訊或上課規範..." style="height: 100px;"></textarea>
