@@ -36,16 +36,17 @@ window.addEventListener('DOMContentLoaded', () => {
   const isLocked = checkURLParameters();
 
   if (!isLocked) {
-    // Initial load: Load sample data if no cached raw CSV
-    if (appState.rawCSV) {
+    // Prefer live Google Sheet data whenever a valid sheet URL exists.
+    if (isGoogleSheetUrl(appState.sheetUrl)) {
+      if (appState.rawCSV) {
+        parseAndRender(appState.rawCSV);
+        renderSheetTabsUI();
+      }
+      fetchSheetData(appState.sheetUrl);
+    } else if (appState.rawCSV) {
       parseAndRender(appState.rawCSV);
       renderSheetTabsUI();
-      if (isGoogleSheetUrl(appState.sheetUrl)) {
-        startSheetAutoRefresh();
-        refreshSheetDataIfNeeded();
-      }
     } else {
-      // Default to sample CSV for initial preview
       loadSampleCSV();
     }
   }
