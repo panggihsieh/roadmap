@@ -1068,9 +1068,9 @@ body.mode-teacher #panel-teacher {
 }
 
 .icon-only-btn {
-  width: 38px;
-  height: 38px;
-  padding: 0;
+  width: 42px;
+  height: 42px;
+  padding: 0 !important;
   display: inline-flex;
   align-items: center;
   justify-content: center;
