@@ -20,6 +20,10 @@ let sheetAutoRefreshTimer = null;
 let isSheetAutoRefreshInFlight = false;
 let isSheetAutoRefreshEnabled = false;
 
+function isGoogleSheetUrl(url) {
+  return typeof url === 'string' && /docs\.google\.com\/spreadsheets\/d\//.test(url);
+}
+
 // Initialize Application
 window.addEventListener('DOMContentLoaded', () => {
   // Load data from LocalStorage if available
@@ -36,6 +40,10 @@ window.addEventListener('DOMContentLoaded', () => {
     if (appState.rawCSV) {
       parseAndRender(appState.rawCSV);
       renderSheetTabsUI();
+      if (isGoogleSheetUrl(appState.sheetUrl)) {
+        startSheetAutoRefresh();
+        refreshSheetDataIfNeeded();
+      }
     } else {
       // Default to sample CSV for initial preview
       loadSampleCSV();
@@ -442,32 +450,13 @@ function getSpreadsheetId(url) {
 // Helper to append or replace gid in Google Sheet URLs safely
 function updateUrlGid(url, gid) {
   if (!url) return url;
-  
-  let baseUrl = url;
-  if (baseUrl.includes('#')) {
-    const parts = baseUrl.split('#');
-    if (parts[1].startsWith('gid=')) {
-      baseUrl = parts[0];
-    }
+
+  const spreadsheetId = getSpreadsheetId(url);
+  if (spreadsheetId) {
+    return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=${gid}`;
   }
-  
-  if (baseUrl.includes('?')) {
-    const parts = baseUrl.split('?');
-    const params = new URLSearchParams(parts[1]);
-    if (params.has('gid')) {
-      params.delete('gid');
-      const paramStr = params.toString();
-      baseUrl = parts[0] + (paramStr ? '?' + paramStr : '');
-    }
-  } else if (baseUrl.includes('&')) {
-    baseUrl = baseUrl.replace(/[&?]gid=\d+/, '');
-  }
-  
-  if (baseUrl.includes('/edit')) {
-    const beforeEdit = baseUrl.split('/edit')[0];
-    return beforeEdit + `/edit#gid=${gid}`;
-  }
-  
+
+  let baseUrl = url.split('#')[0].replace(/[?&]gid=\d+/g, '');
   return baseUrl + (baseUrl.includes('?') ? '&' : '?') + `gid=${gid}`;
 }
 
