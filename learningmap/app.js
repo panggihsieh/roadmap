@@ -13,6 +13,7 @@ let appState = {
   activeGid: '0' // Active worksheet gid
 };
 
+const DEFAULT_SHEET_URL = 'https://docs.google.com/spreadsheets/d/18u82OZMeHzkY9W4lYUP2GtJADe2PlwcgQfAF4x2QAQs/edit?usp=sharing';
 const TARGET_SHEET_TAB_NAME = 'now';
 const SHEET_AUTO_REFRESH_INTERVAL_MS = 30000;
 
@@ -191,6 +192,9 @@ function checkURLParameters() {
     } else {
       if (isGoogleSheetUrl(appState.sheetUrl)) {
         fetchSheetData(appState.sheetUrl);
+      } else if (isGoogleSheetUrl(DEFAULT_SHEET_URL)) {
+        appState.sheetUrl = DEFAULT_SHEET_URL;
+        fetchSheetData(DEFAULT_SHEET_URL);
       } else {
         stopSheetAutoRefresh();
         showUnboundStudentState('此學生頁尚未綁定 Google Sheet，請改用教師頁產生含 sheet 參數的分享連結。');
