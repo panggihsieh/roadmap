@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>學習知識地圖</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="mode-student"> <!-- Default to student mode for initial preview -->
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="logo-icon">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        <span>學習地圖 Roadmap</span>
+      </div>
+    </div>
+    <div class="header-right no-print">
+      <!-- Mode Selection Controls -->
+      <div class="toggle-container">
+        <button id="btn-mode-student" class="toggle-btn active" onclick="switchMode('student')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20M4 19.5V3a1 1 0 0 1 1-1h15a1 1 0 0 1 1 1v19a1 1 0 0 1-1 1H6.5a2.5 2.5 0 0 1-2.5-2.5z"/></svg>
+          學生網頁
+        </button>
+        <button id="btn-mode-teacher" class="toggle-btn" onclick="switchMode('teacher')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          教師後台
+        </button>
+      </div>
+      <!-- Export PDF Button with Options -->
+      <div class="pdf-dropdown-wrapper">
+        <button id="btn-pdf-export" class="action-btn pdf-btn" onclick="togglePdfDropdown(event)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          輸出 PDF
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-left: 2px;"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="pdf-dropdown-menu" class="pdf-dropdown-menu hidden">
+          <button class="pdf-menu-item" onclick="triggerPdfExport('all')">
+            <span class="menu-item-icon">📚</span>
+            <div class="menu-item-text">
+              <span class="menu-item-title">全部學習物件</span>
+              <span class="menu-item-desc">匯出所有目錄及資源連結</span>
+            </div>
+          </button>
+          <button class="pdf-menu-item" id="btn-pdf-checked" onclick="triggerPdfExport('checked')">
+            <span class="menu-item-icon">☑️</span>
+            <div class="menu-item-text">
+              <span class="menu-item-title">已勾選的物件</span>
+              <span class="menu-item-desc" id="pdf-checked-count">僅匯出勾選項目 (0 個)</span>
+            </div>
+          </button>
+          <button class="pdf-menu-item" id="btn-pdf-selected" onclick="triggerPdfExport('selected')">
+            <span class="menu-item-icon">📌</span>
+            <div class="menu-item-text">
+              <span class="menu-item-title">單一物件</span>
+              <span class="menu-item-desc" id="pdf-selected-name">僅匯出當前選取的資源</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <main class="main-container">
+    
+    <!-- LEFT PANEL: Teacher Parameters (Visible only in mode-teacher) -->
+    <aside id="panel-teacher" class="panel panel-left no-print">
+      <div class="panel-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <h2>參數與資料設定</h2>
+      </div>
+      
+      <div class="form-group">
+        <label for="input-title">研習主題 (Root)</label>
+        <input type="text" id="input-title" placeholder="例如：Karpathy 深度學習研習營" value="Karpathy 深度學習研習課程">
+      </div>
+
+      <div class="form-group">
+        <label for="input-sheet-url">Google Sheet 網址</label>
+        <div class="input-with-button">
+          <input type="text" id="input-sheet-url" placeholder="https://docs.google.com/spreadsheets/d/.../edit...">
+          <button id="btn-load-sheet" class="control-btn" onclick="loadGoogleSheet()">載入</button>
+        </div>
+        <small class="tip-text">需設定為「知道連結的任何人均可檢視」</small>
+      </div>
+
+      <div class="form-group">
+        <label for="input-share-url">學生專用獨立網頁連結</label>
+        <div class="input-with-button">
+          <input type="text" id="input-share-url" readonly onclick="this.select()" placeholder="產生中...">
+          <button id="btn-copy-share" class="control-btn" onclick="copyShareLink()">複製連結</button>
+        </div>
+        <small class="tip-text" style="color: var(--success-color);">將此連結提供給學生，他們將只能看到學生頁面，並自動隱藏教師後台入口。</small>
+      </div>
+
+      <div class="divider"><span>或使用其他載入方式</span></div>
+
+      <div class="form-group actions-row">
+        <button id="btn-load-sample" class="control-btn secondary-btn" onclick="loadSampleCSV()">
+          載入本地範例 CSV
+        </button>
+        <label class="control-btn secondary-btn file-label">
+          <input type="file" id="input-file-csv" accept=".csv" onchange="handleFileSelect(event)">
+          上傳本機 CSV
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label for="input-csv-raw">手動貼上 CSV 資料</label>
+        <textarea id="input-csv-raw" placeholder="rank,category,name,url,description&#10;1,單元一,項目名稱,https://...,說明內容"></textarea>
+        <button id="btn-parse-raw" class="control-btn w-full" onclick="parseRawCSV()">解析並更新樹狀圖</button>
+      </div>
+
+      <div class="form-group">
+        <label for="input-supplement">補充內容說明</label>
+        <textarea id="input-supplement" placeholder="可以輸入關於此學習地圖的補充說明、聯絡資訊或上課規範..." style="height: 100px;"></textarea>
+      </div>
+    </aside>
+
+    <!-- MIDDLE PANEL: Tree Knowledge Structure -->
+    <section id="panel-tree" class="panel panel-middle">
+      <div class="panel-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <h2>課程知識地圖目錄</h2>
+        <div class="tree-controls no-print">
+          <button class="icon-text-btn icon-only-btn" onclick="expandAllNodes(true)" title="全部展開">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="7 13 12 18 17 13"></polyline>
+              <polyline points="7 6 12 11 17 6"></polyline>
+            </svg>
+          </button>
+          <button class="icon-text-btn icon-only-btn" onclick="expandAllNodes(false)" title="全部折疊">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="17 11 12 6 7 11"></polyline>
+              <polyline points="17 18 12 13 7 18"></polyline>
+            </svg>
+          </button>
+        </div>
+        <span class="badge" id="item-count">0 個項目</span>
+      </div>
+      <div class="tree-root-container">
+        <!-- Root node indicator -->
+        <div class="tree-root-node">
+          <span class="root-dot"></span>
+          <span class="root-title" id="tree-root-title">學習主題</span>
+        </div>
+        <!-- Tree content populated dynamically -->
+        <div id="tree-container" class="tree-body">
+          <div class="empty-state">
+            <p>無資料。請點選教師後台載入範例資料或輸入 Google Sheet 網址。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: Object Detail Explanation -->
+    <section id="panel-detail" class="panel panel-right">
+      <div class="panel-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <h2>詳細資訊說明</h2>
+      </div>
+      <div id="detail-container" class="detail-body">
+        <!-- Default State -->
+        <div class="detail-empty-state">
+          <div class="pulse-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </div>
+          <h3>請點選左側目錄中的學習物件</h3>
+          <p>點選後在此處將會顯示詳細下載連結與學習描述說明。</p>
+        </div>
+      </div>
+
+      <!-- Supplementary notes section -->
+      <div id="supplementary-info-display" class="supplementary-section hidden">
+        <h3>補充說明</h3>
+        <div class="supplement-content" id="supplement-text-display"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- PRINT-ONLY CONTAINER (for generating nice PDFs) -->
+  <div id="print-container" class="print-only">
+    <div class="print-header">
+      <h1 id="print-workshop-title">研習主題學習地圖</h1>
+      <p class="print-date" id="print-current-date"></p>
+    </div>
+    <div class="print-body">
+      <div class="print-section">
+        <h2>一、課程結構與下載項目</h2>
+        <div id="print-tree-list"></div>
+      </div>
+      <div class="print-section" id="print-supplement-section">
+        <h2>二、研習補充說明</h2>
+        <div id="print-supplement-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Javascript Logic -->
+  <script src="app.js"></script>
+</body>
+</html>

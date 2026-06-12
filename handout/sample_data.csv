@@ -1,0 +1,11 @@
+rank,category,name,url,description
+1,AI 核心觀念/機器學習基礎,機器學習簡介投影片,https://example.com/ml-intro-slides,介紹什麼是機器學習、監督式與非監督式學習的區別。
+2,AI 核心觀念/機器學習基礎,線性回歸與分類實作,https://example.com/ml-basic-colab,Google Colab 實作：使用 Scikit-Learn 進行房價預測與鳶尾花分類。
+3,AI 核心觀念/深度學習導論,神經網路基礎觀念,https://example.com/nn-basics,理解神經元、激活函數（ReLU, Sigmoid）以及前向與反向傳播。
+4,AI 核心觀念/深度學習導論,第一個 PyTorch 模型,https://example.com/pytorch-model,建立並訓練一個簡單的多層感知器（MLP）分類器。
+5,Karpathy 準則實踐/模型建構,微梯度下降引擎 Micrograd,https://github.com/karpathy/micrograd,Andrej Karpathy 開源的超輕量反向傳播引擎，非常適合學習 Autograd 機制。
+6,Karpathy 準則實踐/模型建構,模型訓練 Debug 檢核表,https://example.com/debug-checklist,Karpathy 提出的模型訓練排錯指南：先從小資料集 Overfit 開始。
+7,Karpathy 準則實踐/模型建構,學習率調整策略 (LR Finder),https://example.com/lr-finder-guide,說明如何使用 Learning Rate Finder 尋找最適合的初始學習率。
+8,Karpathy 準則實踐/生成式 AI,字元級 GPT 訓練實作,https://example.com/char-gpt-colab,使用 nanoGPT 的概念，在 Colab 上從零訓練一個莎士比亞風格的字元級 GPT。
+9,Karpathy 準則實踐/生成式 AI,Tokenization 斷詞原理,https://example.com/tokenization-video,Karpathy 講解的大語言模型斷詞（Byte Pair Encoding, BPE）教學影片。
+10,補充資源/進階學習,LLM.c 從零用 C 寫 GPT-2,https://github.com/karpathy/llm.c,Karpathy 最新力作：不使用 PyTorch，純 C 語言與 CUDA 撰寫 GPT-2 訓練代碼。
