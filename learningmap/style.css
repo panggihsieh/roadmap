@@ -1085,6 +1085,29 @@ body.mode-teacher #panel-teacher {
 /* Student Mode Font Size Adjustments for Better Readability */
 body.mode-student {
   font-size: 1.02rem;
+  overflow-y: auto;
+}
+
+body.mode-student .main-container {
+  height: auto;
+  min-height: calc(100vh - 85px);
+  overflow: visible;
+  align-items: start;
+}
+
+body.mode-student .panel {
+  min-height: fit-content;
+}
+
+body.mode-student .panel-middle,
+body.mode-student .tree-root-container,
+body.mode-student .detail-body {
+  overflow: visible;
+}
+
+body.mode-student .tree-root-container,
+body.mode-student .detail-body {
+  flex: initial;
 }
 
 body.mode-student #header-workshop-title {
