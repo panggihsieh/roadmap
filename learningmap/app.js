@@ -13,6 +13,13 @@ let appState = {
   activeGid: '0' // Active worksheet gid
 };
 
+const TARGET_SHEET_TAB_NAME = 'now';
+const SHEET_AUTO_REFRESH_INTERVAL_MS = 30000;
+
+let sheetAutoRefreshTimer = null;
+let isSheetAutoRefreshInFlight = false;
+let isSheetAutoRefreshEnabled = false;
+
 // Initialize Application
 window.addEventListener('DOMContentLoaded', () => {
   // Load data from LocalStorage if available
@@ -43,6 +50,16 @@ window.addEventListener('DOMContentLoaded', () => {
     const wrapper = document.querySelector('.pdf-dropdown-wrapper');
     if (wrapper && !wrapper.contains(e.target)) {
       document.getElementById('pdf-dropdown-menu').classList.add('hidden');
+    }
+  });
+
+  window.addEventListener('focus', () => {
+    refreshSheetDataIfNeeded();
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      refreshSheetDataIfNeeded();
     }
   });
 });
@@ -223,7 +240,102 @@ function getGoogleSheetCsvUrl(url, gid = null) {
   return null;
 }
 
-// Fetch CSV data from Google Sheet with automatic Tab detection and selection
+function findTargetSheetTab(tabs) {
+  return (tabs || []).find(tab => tab.name && tab.name.trim().toLowerCase() === TARGET_SHEET_TAB_NAME);
+}
+
+function stopSheetAutoRefresh() {
+  isSheetAutoRefreshEnabled = false;
+  if (sheetAutoRefreshTimer) {
+    clearInterval(sheetAutoRefreshTimer);
+    sheetAutoRefreshTimer = null;
+  }
+}
+
+function startSheetAutoRefresh() {
+  isSheetAutoRefreshEnabled = true;
+  stopSheetAutoRefresh();
+  isSheetAutoRefreshEnabled = true;
+  sheetAutoRefreshTimer = setInterval(() => {
+    refreshSheetDataIfNeeded();
+  }, SHEET_AUTO_REFRESH_INTERVAL_MS);
+}
+
+function applySheetCsv(csvText) {
+  appState.rawCSV = csvText;
+  const csvRawInput = document.getElementById('input-csv-raw');
+  if (csvRawInput) csvRawInput.value = csvText;
+
+  saveStateToLocalStorage();
+  parseAndRender(csvText);
+  updateShareLinkInput();
+}
+
+function fetchTargetSheetCsv(url) {
+  const spreadsheetId = getSpreadsheetId(url);
+  if (!spreadsheetId) {
+    throw new Error('Invalid Google Sheet URL');
+  }
+
+  const htmlViewUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/htmlview`;
+
+  return fetch(htmlViewUrl)
+    .then(response => {
+      if (!response.ok) throw new Error('CORS or Network error on htmlview');
+      return response.text();
+    })
+    .then(htmlText => {
+      const regex = /items\.push\(\{name:\s*"([^"]+)",\s*pageUrl:\s*"[^"]*",\s*gid:\s*"([^"]+)"/g;
+      let match;
+      const tabs = [];
+      while ((match = regex.exec(htmlText)) !== null) {
+        tabs.push({ name: match[1], gid: match[2] });
+      }
+
+      const targetTab = findTargetSheetTab(tabs);
+      if (!targetTab) {
+        throw new Error(`Google Sheet 找不到名稱為 "${TARGET_SHEET_TAB_NAME}" 的工作表`);
+      }
+
+      const resolvedSheetUrl = updateUrlGid(url, targetTab.gid);
+      const csvUrl = `${getGoogleSheetCsvUrl(resolvedSheetUrl, targetTab.gid)}&t=${Date.now()}`;
+
+      return fetch(csvUrl)
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch CSV');
+          return response.text();
+        })
+        .then(csvText => ({
+          csvText,
+          targetTab,
+          resolvedSheetUrl
+        }));
+    });
+}
+
+function refreshSheetDataIfNeeded() {
+  if (!isSheetAutoRefreshEnabled || !appState.sheetUrl || isSheetAutoRefreshInFlight) return;
+
+  isSheetAutoRefreshInFlight = true;
+  fetchTargetSheetCsv(appState.sheetUrl)
+    .then(({ csvText, targetTab, resolvedSheetUrl }) => {
+      appState.sheetTabs = [];
+      appState.activeGid = targetTab.gid;
+      appState.sheetUrl = resolvedSheetUrl;
+
+      if (csvText !== appState.rawCSV) {
+        applySheetCsv(csvText);
+      }
+    })
+    .catch(error => {
+      console.warn('Auto refresh skipped:', error.message);
+    })
+    .finally(() => {
+      isSheetAutoRefreshInFlight = false;
+    });
+}
+
+// Fetch CSV data from Google Sheet and only use the worksheet tab named "now"
 function fetchSheetData(url, targetGid = null) {
   const spreadsheetId = getSpreadsheetId(url);
   if (!spreadsheetId) {
@@ -233,16 +345,9 @@ function fetchSheetData(url, targetGid = null) {
 
   showLoader(true);
   
-  // Parse target Gid
-  let activeGid = targetGid;
-  if (!activeGid) {
-    const gidMatch = url.match(/[#&?]gid=([0-9]+)/);
-    activeGid = gidMatch ? gidMatch[1] : (appState.activeGid || '0');
-  }
-
   const htmlViewUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/htmlview`;
 
-  // Fetch worksheets/tabs list first
+  // Fetch worksheets/tabs list first, then lock to the tab named "now"
   fetch(htmlViewUrl)
     .then(response => {
       if (!response.ok) throw new Error('CORS or Network error on htmlview');
@@ -257,20 +362,14 @@ function fetchSheetData(url, targetGid = null) {
         tabs.push({ name: match[1], gid: match[2] });
       }
 
-      if (tabs.length > 0) {
-        appState.sheetTabs = tabs;
-        
-        // Check if activeGid exists in detected tabs
-        const exists = tabs.some(t => t.gid === activeGid);
-        if (!exists) {
-          activeGid = tabs[0].gid; // default to first tab if activeGid not found
-        }
-      } else {
-        appState.sheetTabs = [];
+      const targetTab = findTargetSheetTab(tabs);
+      if (!targetTab) {
+        throw new Error(`Google Sheet 中找不到名稱為 "${TARGET_SHEET_TAB_NAME}" 的工作表`);
       }
-      
-      appState.activeGid = activeGid;
-      appState.sheetUrl = updateUrlGid(url, activeGid);
+
+      appState.sheetTabs = [];
+      appState.activeGid = targetTab.gid;
+      appState.sheetUrl = updateUrlGid(url, targetTab.gid);
       
       const sheetInput = document.getElementById('input-sheet-url');
       if (sheetInput) sheetInput.value = appState.sheetUrl;
@@ -279,23 +378,11 @@ function fetchSheetData(url, targetGid = null) {
       renderSheetTabsUI();
 
       // Fetch active tab CSV
-      const csvUrl = getGoogleSheetCsvUrl(appState.sheetUrl, activeGid);
+      const csvUrl = getGoogleSheetCsvUrl(appState.sheetUrl, targetTab.gid);
       return fetch(csvUrl);
     })
     .catch(error => {
-      console.warn('Tab detection failed, attempting direct CSV load fallback:', error.message);
-      
-      appState.sheetTabs = [];
-      appState.activeGid = activeGid;
-      appState.sheetUrl = updateUrlGid(url, activeGid);
-      
-      const sheetInput = document.getElementById('input-sheet-url');
-      if (sheetInput) sheetInput.value = appState.sheetUrl;
-      
-      renderSheetTabsUI();
-
-      const csvUrl = getGoogleSheetCsvUrl(appState.sheetUrl, activeGid);
-      return fetch(csvUrl);
+      throw error;
     })
     .then(response => {
       if (!response.ok) throw new Error('連線失敗，請確認該試算表是否已公開分享！');
@@ -313,6 +400,32 @@ function fetchSheetData(url, targetGid = null) {
     .catch(error => {
       console.error(error);
       alert(`載入 Google Sheet 失敗: ${error.message}\n\n提醒：請在試算表點選右上角「共用」，將權限設為「知道連結的任何人均可檢視」；或者您也可以使用「上傳本機 CSV」或「載入本地範例」來測試。`);
+    })
+    .finally(() => {
+      showLoader(false);
+    });
+}
+
+// Override sheet loading to enable automatic polling-based refresh for the "now" tab
+function fetchSheetData(url, targetGid = null) {
+  showLoader(true);
+
+  fetchTargetSheetCsv(url)
+    .then(({ csvText, targetTab, resolvedSheetUrl }) => {
+      appState.sheetTabs = [];
+      appState.activeGid = targetTab.gid;
+      appState.sheetUrl = resolvedSheetUrl;
+
+      const sheetInput = document.getElementById('input-sheet-url');
+      if (sheetInput) sheetInput.value = appState.sheetUrl;
+
+      renderSheetTabsUI();
+      applySheetCsv(csvText);
+      startSheetAutoRefresh();
+    })
+    .catch(error => {
+      console.error(error);
+      alert(`頛 Google Sheet 憭望?: ${error.message}`);
     })
     .finally(() => {
       showLoader(false);
@@ -1106,6 +1219,7 @@ function loadSampleCSV() {
 
   appState.sheetTabs = [];
   appState.activeGid = '0';
+  stopSheetAutoRefresh();
   appState.rawCSV = sampleCSV;
   const csvRawInput = document.getElementById('input-csv-raw');
   if (csvRawInput) csvRawInput.value = sampleCSV;
@@ -1122,6 +1236,7 @@ function parseRawCSV() {
   }
   appState.sheetTabs = [];
   appState.activeGid = '0';
+  stopSheetAutoRefresh();
   appState.rawCSV = csvText;
   saveStateToLocalStorage();
   parseAndRender(csvText);
@@ -1137,6 +1252,7 @@ function handleFileSelect(event) {
     const csvText = e.target.result;
     appState.sheetTabs = [];
     appState.activeGid = '0';
+    stopSheetAutoRefresh();
     appState.rawCSV = csvText;
     const csvRawInput = document.getElementById('input-csv-raw');
     if (csvRawInput) csvRawInput.value = csvText;
