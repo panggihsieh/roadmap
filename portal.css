@@ -1,0 +1,377 @@
+/* Reset & Box Sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Custom Properties / Design Tokens */
+:root {
+  --font-family: 'Outfit', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --bg-color: #0b0c15;
+  --card-bg: rgba(18, 20, 38, 0.45);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  
+  --primary-glow: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+  --secondary-glow: radial-gradient(circle, rgba(20, 184, 166, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+  
+  /* Vote Accent */
+  --vote-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  --vote-border-hover: rgba(168, 85, 247, 0.4);
+  
+  /* Learning Map Accent */
+  --map-gradient: linear-gradient(135deg, #14b8a6 0%, #3b82f6 100%);
+  --map-border-hover: rgba(20, 184, 166, 0.4);
+}
+
+/* Base Body Styles */
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Background Animated Blobs */
+.background-blobs {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.6;
+  animation: float 20s infinite alternate ease-in-out;
+}
+
+.blob-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, rgba(168, 85, 247, 0.05) 70%);
+  top: -10%;
+  left: -10%;
+  animation-duration: 25s;
+}
+
+.blob-2 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.2) 0%, rgba(59, 130, 246, 0.05) 70%);
+  bottom: -10%;
+  right: -10%;
+  animation-duration: 30s;
+  animation-delay: -5s;
+}
+
+.blob-3 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation-duration: 20s;
+  animation-delay: -10s;
+}
+
+@keyframes float {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(40px, -60px) scale(1.1);
+  }
+  100% {
+    transform: translate(-20px, 30px) scale(0.95);
+  }
+}
+
+/* Layout Container */
+.container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Header / Title Section */
+header {
+  text-align: center;
+  margin-bottom: 4rem;
+  opacity: 0;
+  animation: fadeInDown 0.8s forwards ease-out;
+}
+
+h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  margin-bottom: 1rem;
+  background: linear-gradient(to right, #f8fafc, #cbd5e1, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  font-size: 1.15rem;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Main Grid Layout */
+.portal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2.5rem;
+  width: 100%;
+  max-width: 1000px;
+  opacity: 0;
+  animation: fadeInUp 0.8s 0.2s forwards ease-out;
+}
+
+/* Premium Card Design */
+.portal-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  padding: 3rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.portal-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}
+
+/* Card Hover Animations & Shadows */
+.portal-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.portal-card.vote-card:hover {
+  border-color: var(--vote-border-hover);
+  box-shadow: 0 0 40px rgba(168, 85, 247, 0.15), 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.portal-card.map-card:hover {
+  border-color: var(--map-border-hover);
+  box-shadow: 0 0 40px rgba(20, 184, 166, 0.15), 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Card Content Details */
+.card-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.vote-card .card-icon {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  color: #c084fc;
+}
+
+.map-card .card-icon {
+  background: rgba(20, 184, 166, 0.15);
+  border: 1px solid rgba(20, 184, 166, 0.25);
+  color: #2dd4bf;
+}
+
+.portal-card h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+}
+
+.portal-card p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 2.5rem;
+}
+
+/* Button & Action Link Styling */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: auto;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.5rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+/* Primary Button Styling */
+.btn-primary {
+  color: #fff;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.vote-card .btn-primary {
+  background: var(--vote-gradient);
+  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+}
+
+.vote-card .btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5);
+  transform: translateY(-1px);
+}
+
+.map-card .btn-primary {
+  background: var(--map-gradient);
+  box-shadow: 0 4px 15px rgba(20, 184, 166, 0.3);
+}
+
+.map-card .btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(20, 184, 166, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Secondary Button Styling */
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.vote-card .btn-secondary:hover {
+  border-color: rgba(168, 85, 247, 0.3);
+  color: #e9d5ff;
+}
+
+.map-card .btn-secondary:hover {
+  border-color: rgba(20, 184, 166, 0.3);
+  color: #ccfbf1;
+}
+
+/* Footer Section */
+footer {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: #475569;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  opacity: 0;
+  animation: fadeIn 1s 0.5s forwards ease-in;
+}
+
+footer a {
+  color: #64748b;
+  text-decoration: none;
+  margin: 0 0.5rem;
+  transition: color 0.2s ease;
+}
+
+footer a:hover {
+  color: var(--text-secondary);
+}
+
+/* Animation Keyframes */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2.25rem;
+  }
+  
+  .container {
+    padding: 3rem 1.5rem;
+  }
+  
+  .portal-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .portal-card {
+    padding: 2.25rem 1.75rem;
+  }
+}

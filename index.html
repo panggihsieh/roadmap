@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>工作坊專案入口網 (Roadmap Portal)</title>
+  <meta name="description" content="工作坊專案數位工具箱入口網，包含即時互動投票系統與研習課程學習地圖。">
+  
+  <!-- Google Fonts: Outfit & Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Custom Portal CSS -->
+  <link rel="stylesheet" href="portal.css">
+</head>
+<body>
+
+  <!-- Dynamic Animated Background Blobs -->
+  <div class="background-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <main class="container">
+    <!-- Header Section -->
+    <header>
+      <h1 id="portal-title">研習工作坊數位工具箱</h1>
+      <p class="subtitle">歡迎來到研習工作坊！此入口網站提供互動投票系統與課程探索地圖，協助講師與學員進行即時互動與學習追蹤。</p>
+    </header>
+
+    <!-- Project Cards Grid -->
+    <section class="portal-grid" aria-labelledby="portal-title">
+      
+      <!-- Card 1: Vote Project -->
+      <article class="portal-card vote-card" id="card-vote">
+        <div class="card-icon">🗳️</div>
+        <h2>即時互動投票系統</h2>
+        <p>提供類似 Slido 的即時互動投票，適用於研習、課堂與活動現場。講師可即時管理題目、學員匿名掃碼投票、現場螢幕即時投影出統計結果與排行榜超車動態。</p>
+        
+        <div class="actions">
+          <a href="vote/poll/" class="btn btn-primary" id="link-vote-poll">
+            進入觀眾投票 ➔
+          </a>
+          <a href="vote/output/" class="btn btn-secondary" id="link-vote-output">
+            現場大螢幕投影頁
+          </a>
+          <a href="vote/adm/" class="btn btn-secondary" id="link-vote-admin">
+            講師管理後台
+          </a>
+        </div>
+      </article>
+
+      <!-- Card 2: Learning Map Project -->
+      <article class="portal-card map-card" id="card-learningmap">
+        <div class="card-icon">🗺️</div>
+        <h2>課程互動學習地圖</h2>
+        <p>具備現代化玻璃擬物風的樹狀課程探索地圖。支援雙向階層連動勾選、學生/教師雙視圖模式，並可即時生成防後台暴露的學生獨立連結，亦支援 PDF 最佳化匯出列印。</p>
+        
+        <div class="actions">
+          <a href="learningmap/index.html" class="btn btn-primary" id="link-map-main">
+            進入學習地圖 ➔
+          </a>
+          <a href="learningmap/index.html?view=student" class="btn btn-secondary" id="link-map-student">
+            學員模式預覽
+          </a>
+        </div>
+      </article>
+
+    </section>
+  </main>
+
+  <!-- Footer Section -->
+  <footer>
+    <p>© 2026 Workshop Roadmap. All rights reserved.</p>
+    <p>
+      <a href="https://github.com/panggihsieh/roadmap" target="_blank" rel="noopener noreferrer" id="link-github-repo">GitHub Repository</a>
+      |
+      <a href="README.md" target="_blank" id="link-readme">Documentation</a>
+    </p>
+  </footer>
+
+</body>
+</html>
