@@ -267,6 +267,7 @@ body {
   gap: 20px;
   overflow: hidden;
   height: calc(100vh - 85px);
+  min-height: 0;
   transition: grid-template-columns var(--transition-normal);
 }
 
@@ -288,6 +289,7 @@ body.mode-student .main-container {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: all var(--transition-normal);
@@ -477,7 +479,8 @@ body.mode-teacher #panel-teacher {
 /* Tree Structure Middle Panel */
 .panel-middle {
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -485,6 +488,7 @@ body.mode-teacher #panel-teacher {
 .tree-root-container {
   padding: 24px;
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -649,6 +653,7 @@ body.mode-teacher #panel-teacher {
 .detail-body {
   padding: 24px;
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
