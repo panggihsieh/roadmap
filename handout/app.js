@@ -8,7 +8,9 @@ let appState = {
   parsedItems: [], // Flat list of parsed objects from CSV
   selectedItem: null, // Currently active leaf node item
   checkedRanks: new Set(), // Set of rank values that are checked
-  isLocked: false // True if standalone student link is loaded via query params
+  isLocked: false, // True if standalone student link is loaded via query params
+  sheetTabs: [], // List of detected Google Sheet tabs: { name, gid }
+  activeGid: '0' // Active worksheet gid
 };
 
 // Initialize Application
@@ -26,6 +28,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // Initial load: Load sample data if no cached raw CSV
     if (appState.rawCSV) {
       parseAndRender(appState.rawCSV);
+      renderSheetTabsUI();
     } else {
       // Default to sample CSV for initial preview
       loadSampleCSV();
@@ -57,6 +60,18 @@ function loadStateFromLocalStorage() {
 
   const savedSupp = localStorage.getItem('roadmap_supplementaryInfo');
   if (savedSupp !== null) appState.supplementaryInfo = savedSupp;
+
+  const savedGid = localStorage.getItem('roadmap_activeGid');
+  if (savedGid) appState.activeGid = savedGid;
+
+  const savedTabs = localStorage.getItem('roadmap_sheetTabs');
+  if (savedTabs) {
+    try {
+      appState.sheetTabs = JSON.parse(savedTabs);
+    } catch(e) {
+      appState.sheetTabs = [];
+    }
+  }
 }
 
 // Save state to local storage
@@ -67,6 +82,8 @@ function saveStateToLocalStorage() {
   localStorage.setItem('roadmap_sheetUrl', appState.sheetUrl);
   localStorage.setItem('roadmap_rawCSV', appState.rawCSV);
   localStorage.setItem('roadmap_supplementaryInfo', appState.supplementaryInfo);
+  localStorage.setItem('roadmap_activeGid', appState.activeGid);
+  localStorage.setItem('roadmap_sheetTabs', JSON.stringify(appState.sheetTabs));
 }
 
 // Bind DOM Input fields
@@ -182,39 +199,264 @@ function switchMode(mode) {
 }
 
 // Convert Google Sheet edit URL to raw CSV export URL
-function getGoogleSheetCsvUrl(url) {
+function getGoogleSheetCsvUrl(url, gid = null) {
   const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
   if (match && match[1]) {
-    return `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
+    let csvUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
+    
+    // Determine active gid
+    let targetGid = gid;
+    if (!targetGid) {
+      const gidMatch = url.match(/[#&?]gid=([0-9]+)/);
+      if (gidMatch && gidMatch[1]) {
+        targetGid = gidMatch[1];
+      }
+    }
+    
+    if (targetGid) {
+      csvUrl += `&gid=${targetGid}`;
+    } else {
+      csvUrl += `&gid=0`; // default to first tab
+    }
+    return csvUrl;
   }
   return null;
 }
 
-// Fetch CSV data from Google Sheet
-function fetchSheetData(url) {
-  const csvUrl = getGoogleSheetCsvUrl(url);
-  if (!csvUrl) {
+// Fetch CSV data from Google Sheet with automatic Tab detection and selection
+function fetchSheetData(url, targetGid = null) {
+  const spreadsheetId = getSpreadsheetId(url);
+  if (!spreadsheetId) {
     alert('無效的 Google Sheet 網址，請確認格式是否正確！');
     return;
   }
 
   showLoader(true);
-  fetch(csvUrl)
+  
+  // Parse target Gid
+  let activeGid = targetGid;
+  if (!activeGid) {
+    const gidMatch = url.match(/[#&?]gid=([0-9]+)/);
+    activeGid = gidMatch ? gidMatch[1] : (appState.activeGid || '0');
+  }
+
+  const htmlViewUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/htmlview`;
+
+  // Fetch worksheets/tabs list first
+  fetch(htmlViewUrl)
+    .then(response => {
+      if (!response.ok) throw new Error('CORS or Network error on htmlview');
+      return response.text();
+    })
+    .then(htmlText => {
+      // Parse tabs using regex
+      const regex = /items\.push\(\{name:\s*"([^"]+)",\s*pageUrl:\s*"[^"]*",\s*gid:\s*"([^"]+)"/g;
+      let match;
+      const tabs = [];
+      while ((match = regex.exec(htmlText)) !== null) {
+        tabs.push({ name: match[1], gid: match[2] });
+      }
+
+      if (tabs.length > 0) {
+        appState.sheetTabs = tabs;
+        
+        // Check if activeGid exists in detected tabs
+        const exists = tabs.some(t => t.gid === activeGid);
+        if (!exists) {
+          activeGid = tabs[0].gid; // default to first tab if activeGid not found
+        }
+      } else {
+        appState.sheetTabs = [];
+      }
+      
+      appState.activeGid = activeGid;
+      appState.sheetUrl = updateUrlGid(url, activeGid);
+      
+      const sheetInput = document.getElementById('input-sheet-url');
+      if (sheetInput) sheetInput.value = appState.sheetUrl;
+
+      // Update Tab Selection UI
+      renderSheetTabsUI();
+
+      // Fetch active tab CSV
+      const csvUrl = getGoogleSheetCsvUrl(appState.sheetUrl, activeGid);
+      return fetch(csvUrl);
+    })
+    .catch(error => {
+      console.warn('Tab detection failed, attempting direct CSV load fallback:', error.message);
+      
+      appState.sheetTabs = [];
+      appState.activeGid = activeGid;
+      appState.sheetUrl = updateUrlGid(url, activeGid);
+      
+      const sheetInput = document.getElementById('input-sheet-url');
+      if (sheetInput) sheetInput.value = appState.sheetUrl;
+      
+      renderSheetTabsUI();
+
+      const csvUrl = getGoogleSheetCsvUrl(appState.sheetUrl, activeGid);
+      return fetch(csvUrl);
+    })
     .then(response => {
       if (!response.ok) throw new Error('連線失敗，請確認該試算表是否已公開分享！');
       return response.text();
     })
     .then(csvText => {
-      appState.sheetUrl = url;
       appState.rawCSV = csvText;
       const csvRawInput = document.getElementById('input-csv-raw');
       if (csvRawInput) csvRawInput.value = csvText;
+      
       saveStateToLocalStorage();
       parseAndRender(csvText);
+      updateShareLinkInput();
     })
     .catch(error => {
       console.error(error);
       alert(`載入 Google Sheet 失敗: ${error.message}\n\n提醒：請在試算表點選右上角「共用」，將權限設為「知道連結的任何人均可檢視」；或者您也可以使用「上傳本機 CSV」或「載入本地範例」來測試。`);
+    })
+    .finally(() => {
+      showLoader(false);
+    });
+}
+
+// Helper to extract spreadsheet ID
+function getSpreadsheetId(url) {
+  if (!url) return null;
+  const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  return match ? match[1] : null;
+}
+
+// Helper to append or replace gid in Google Sheet URLs safely
+function updateUrlGid(url, gid) {
+  if (!url) return url;
+  
+  let baseUrl = url;
+  if (baseUrl.includes('#')) {
+    const parts = baseUrl.split('#');
+    if (parts[1].startsWith('gid=')) {
+      baseUrl = parts[0];
+    }
+  }
+  
+  if (baseUrl.includes('?')) {
+    const parts = baseUrl.split('?');
+    const params = new URLSearchParams(parts[1]);
+    if (params.has('gid')) {
+      params.delete('gid');
+      const paramStr = params.toString();
+      baseUrl = parts[0] + (paramStr ? '?' + paramStr : '');
+    }
+  } else if (baseUrl.includes('&')) {
+    baseUrl = baseUrl.replace(/[&?]gid=\d+/, '');
+  }
+  
+  if (baseUrl.includes('/edit')) {
+    const beforeEdit = baseUrl.split('/edit')[0];
+    return beforeEdit + `/edit#gid=${gid}`;
+  }
+  
+  return baseUrl + (baseUrl.includes('?') ? '&' : '?') + `gid=${gid}`;
+}
+
+// Render dynamic tab selectors in both Left Settings Panel and Right Details Panel mascot empty state
+function renderSheetTabsUI() {
+  const tabs = appState.sheetTabs || [];
+  const leftTabsGrp = document.getElementById('group-sheet-tabs');
+  const leftTabsList = document.getElementById('sheet-tabs-list');
+  const rightTabsContainer = document.getElementById('right-sheet-tabs-container');
+  const rightTabsList = document.getElementById('right-sheet-tabs-list');
+
+  if (tabs.length === 0) {
+    hideSheetTabsUI();
+    return;
+  }
+
+  // Show containers
+  if (leftTabsGrp) leftTabsGrp.style.display = 'block';
+  if (rightTabsContainer) {
+    // Only display right tabs list if we are currently not displaying specific node details (empty detail state)
+    rightTabsContainer.style.display = appState.selectedItem ? 'none' : 'block';
+  }
+
+  // Populate left panel list
+  if (leftTabsList) {
+    leftTabsList.innerHTML = '';
+    tabs.forEach(tab => {
+      const btn = document.createElement('button');
+      btn.className = `sheet-tab-btn ${tab.gid === appState.activeGid ? 'active' : ''}`;
+      btn.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="9" y1="3" x2="9" y2="21"></line>
+        </svg>
+        <span>${tab.name}</span>
+      `;
+      btn.onclick = () => selectSheetTab(tab.gid);
+      leftTabsList.appendChild(btn);
+    });
+  }
+
+  // Populate right panel list
+  if (rightTabsList) {
+    rightTabsList.innerHTML = '';
+    tabs.forEach(tab => {
+      const btn = document.createElement('button');
+      btn.className = `sheet-tab-btn ${tab.gid === appState.activeGid ? 'active' : ''}`;
+      btn.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="9" y1="3" x2="9" y2="21"></line>
+        </svg>
+        <span>${tab.name}</span>
+      `;
+      btn.onclick = () => selectSheetTab(tab.gid);
+      rightTabsList.appendChild(btn);
+    });
+  }
+}
+
+// Clear sheet tab DOM lists and hide containers
+function hideSheetTabsUI() {
+  const leftTabsGrp = document.getElementById('group-sheet-tabs');
+  if (leftTabsGrp) leftTabsGrp.style.display = 'none';
+
+  const rightTabsContainer = document.getElementById('right-sheet-tabs-container');
+  if (rightTabsContainer) rightTabsContainer.style.display = 'none';
+}
+
+// User clicked a tab to load a different sheet tab
+function selectSheetTab(gid) {
+  if (appState.activeGid === gid) return;
+  
+  appState.activeGid = gid;
+  appState.sheetUrl = updateUrlGid(appState.sheetUrl, gid);
+  
+  const sheetInput = document.getElementById('input-sheet-url');
+  if (sheetInput) sheetInput.value = appState.sheetUrl;
+  
+  showLoader(true);
+  const csvUrl = getGoogleSheetCsvUrl(appState.sheetUrl, gid);
+  
+  fetch(csvUrl)
+    .then(response => {
+      if (!response.ok) throw new Error('載入分頁 CSV 失敗，請確認該分頁是否存在且已公開！');
+      return response.text();
+    })
+    .then(csvText => {
+      appState.rawCSV = csvText;
+      const csvRawInput = document.getElementById('input-csv-raw');
+      if (csvRawInput) csvRawInput.value = csvText;
+      
+      saveStateToLocalStorage();
+      parseAndRender(csvText);
+      
+      // Update UI active buttons & share link input
+      renderSheetTabsUI();
+      updateShareLinkInput();
+    })
+    .catch(error => {
+      console.error(error);
+      alert(`切換分頁失敗: ${error.message}`);
     })
     .finally(() => {
       showLoader(false);
@@ -678,8 +920,19 @@ function showItemDetail(item) {
         </div>
         <h3>請點選左側目錄中的學習物件</h3>
         <p>點選後在此處將會顯示詳細下載連結與學習描述說明。</p>
+        <div id="right-sheet-tabs-container" style="display: none; margin-top: 24px; padding-top: 20px; border-top: 1px dashed rgba(255, 255, 255, 0.15); width: 100%;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--text-color); font-weight: 500; text-align: center;">
+            工作表分頁快速切換
+          </h4>
+          <div id="right-sheet-tabs-list" class="sheet-tabs-container" style="justify-content: center;">
+            <!-- Will be filled dynamically -->
+          </div>
+        </div>
       </div>
     `;
+    setTimeout(() => {
+      renderSheetTabsUI();
+    }, 0);
     return;
   }
 
@@ -851,11 +1104,14 @@ function loadSampleCSV() {
 9,Karpathy 準則實踐/生成式 AI,Tokenization 斷詞原理,https://example.com/tokenization-video,Karpathy 講解的大語言模型斷詞（Byte Pair Encoding, BPE）教學影片。
 10,補充資源/進階學習,LLM.c 從零用 C 寫 GPT-2,https://github.com/karpathy/llm.c,Karpathy 最新力作：不使用 PyTorch，純 C 語言與 CUDA 撰寫 GPT-2 訓練代碼。`;
 
+  appState.sheetTabs = [];
+  appState.activeGid = '0';
   appState.rawCSV = sampleCSV;
   const csvRawInput = document.getElementById('input-csv-raw');
   if (csvRawInput) csvRawInput.value = sampleCSV;
   saveStateToLocalStorage();
   parseAndRender(sampleCSV);
+  renderSheetTabsUI();
 }
 
 function parseRawCSV() {
@@ -864,9 +1120,12 @@ function parseRawCSV() {
     alert('貼上區無任何內容！');
     return;
   }
+  appState.sheetTabs = [];
+  appState.activeGid = '0';
   appState.rawCSV = csvText;
   saveStateToLocalStorage();
   parseAndRender(csvText);
+  renderSheetTabsUI();
 }
 
 function handleFileSelect(event) {
@@ -876,11 +1135,14 @@ function handleFileSelect(event) {
   const reader = new FileReader();
   reader.onload = function(e) {
     const csvText = e.target.result;
+    appState.sheetTabs = [];
+    appState.activeGid = '0';
     appState.rawCSV = csvText;
     const csvRawInput = document.getElementById('input-csv-raw');
     if (csvRawInput) csvRawInput.value = csvText;
     saveStateToLocalStorage();
     parseAndRender(csvText);
+    renderSheetTabsUI();
   };
   reader.readAsText(file);
 }
