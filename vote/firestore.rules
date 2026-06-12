@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /sessions/{sessionId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+
+      match /questions/{questionId} {
+        allow read: if true;
+        allow create, update: if true;
+        allow delete: if false;
+
+        match /votes/{voterId} {
+          allow read: if true;
+          allow create, update: if request.resource.id == voterId
+            && request.resource.data.voterId == voterId
+            && request.resource.data.optionId is string
+            && request.resource.data.keys().hasOnly(["optionId", "voterId", "createdAt"]);
+          allow delete: if true;
+        }
+      }
+    }
+  }
+}

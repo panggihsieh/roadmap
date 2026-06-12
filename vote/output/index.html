@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>大南國小線上投票</title>
+    <link rel="stylesheet" href="../styles.css?v=title-2x-final-8f9fcd9">
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">大南國小線上投票</p>
+        <h1 id="pageTitle">即時互動投票</h1>
+      </div>
+      <nav class="route-nav" aria-label="頁面切換" hidden>
+        <a href="#" data-nav-page="poll">投票</a>
+        <a href="#" data-nav-page="output">輸出</a>
+        <a href="#" data-nav-page="adm">管理</a>
+      </nav>
+    </header>
+
+    <main id="app" class="app-shell" aria-live="polite"></main>
+
+    <template id="voteTemplate">
+      <section class="panel vote-panel">
+        <div class="session-line" data-session-title></div>
+        <h2 data-question-text></h2>
+        <p class="muted" data-question-status></p>
+        <div class="option-list" data-options></div>
+        <aside class="vote-qr" aria-label="分享投票頁 QR Code">
+          <img alt="投票頁 QR Code" data-vote-page-qr>
+          <div>
+            <strong>分享投票頁</strong>
+            <p>掃描後可開啟目前投票頁。</p>
+          </div>
+        </aside>
+      </section>
+    </template>
+
+    <template id="screenTemplate">
+      <section class="screen-layout">
+        <div class="live-badge" data-live-badge>LIVE</div>
+        <div class="screen-top">
+          <div class="screen-question">
+            <p class="screen-label"><span data-session-title></span> · <b data-live-badge>LIVE</b></p>
+            <h2 data-question-text></h2>
+          </div>
+        </div>
+        <div class="chart-grid">
+          <div class="chart-panel">
+            <div class="chart-title">統計圖</div>
+            <div class="pie-chart" data-pie-chart aria-label="投票結果圓餅圖"></div>
+          </div>
+          <div class="result-list" data-results></div>
+        </div>
+        <div class="total-votes" data-total-votes></div>
+        <section class="download-panel" data-download-panel hidden>
+          <div class="download-panel-head">
+            <p>Workshop Downloads</p>
+            <h2>研習下載列表</h2>
+          </div>
+          <div class="download-list" data-download-list></div>
+        </section>
+      </section>
+    </template>
+
+    <template id="adminTemplate">
+      <section class="admin-grid">
+        <form class="panel admin-form" data-question-form>
+          <h2>題目設定</h2>
+          <label>
+            <span>活動名稱</span>
+            <input name="title" type="text" required>
+          </label>
+          <label>
+            <span>題目</span>
+            <input name="question" type="text" required>
+          </label>
+          <label>
+            <span>選項，每行一個</span>
+            <textarea name="options" rows="5" required></textarea>
+          </label>
+          <div class="button-row">
+            <button type="submit">儲存題目</button>
+            <button type="button" class="secondary" data-open>開放投票</button>
+            <button type="button" class="secondary" data-close>關閉投票</button>
+          </div>
+        </form>
+
+        <section class="panel">
+          <h2>現場連結</h2>
+          <div class="link-list">
+            <a data-vote-link>觀眾投票頁</a>
+            <a data-screen-link>現場輸出頁</a>
+          </div>
+          <button type="button" class="danger" data-reset>清除目前題目票數</button>
+          <p class="muted" data-admin-status></p>
+        </section>
+
+        <section class="panel download-admin">
+          <h2>研習下載列表</h2>
+          <div class="link-list">
+            <a data-download-link target="_blank" rel="noopener noreferrer">開啟學生下載頁</a>
+          </div>
+          <form data-resource-source-form>
+            <label>
+              <span>Google Sheet / GAS 下載清單 API URL</span>
+              <input name="resourceApiUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec">
+            </label>
+            <div class="button-row">
+              <button type="submit">儲存下載來源</button>
+              <button type="button" class="secondary" data-test-resource-source>測試讀取</button>
+            </div>
+          </form>
+          <form data-manual-resource-form>
+            <label>
+              <span>標題</span>
+              <input name="title" type="text" required>
+            </label>
+            <label>
+              <span>說明</span>
+              <textarea name="description" rows="2"></textarea>
+            </label>
+            <label>
+              <span>類型</span>
+              <select name="type">
+                <option value="url">外部 URL</option>
+                <option value="command">命令列 / PowerShell</option>
+                <option value="drive">手動 Drive 連結</option>
+              </select>
+            </label>
+            <label>
+              <span>URL 或命令列</span>
+              <textarea name="value" rows="3" required></textarea>
+            </label>
+            <label>
+              <span>分類</span>
+              <input name="category" type="text" placeholder="課程資料">
+            </label>
+            <button type="submit">新增手動項目</button>
+          </form>
+          <div class="manual-resource-list" data-manual-resources></div>
+          <p class="muted" data-resource-status></p>
+        </section>
+      </section>
+    </template>
+
+    <script type="module" src="../app.js?v=download-page-1"></script>
+  </body>
+</html>
