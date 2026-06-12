@@ -125,17 +125,7 @@ async function createFirestoreStore() {
         createdAt: serverTimestamp(),
       });
     },
-    async saveResourceSettings(sessionId, resourceApiUrl, manualResources) {
-      await setDoc(
-        doc(db, "sessions", sessionId),
-        {
-          resourceApiUrl,
-          manualResources,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true },
-      );
-    },
+
     async setQuestionStatus(sessionId, questionId, status) {
       await updateDoc(doc(db, "sessions", sessionId, "questions", questionId), { status });
       await updateDoc(doc(db, "sessions", sessionId), {
@@ -219,16 +209,7 @@ function createLocalStore() {
       writeDemoStore(data);
       notify(listeners);
     },
-    async saveResourceSettings(sessionId, resourceApiUrl, manualResources) {
-      const data = readDemoStore();
-      data.sessions[sessionId] = {
-        ...(data.sessions[sessionId] || { id: sessionId }),
-        resourceApiUrl,
-        manualResources,
-      };
-      writeDemoStore(data);
-      notify(listeners);
-    },
+
     async setQuestionStatus(sessionId, questionId, status) {
       const data = readDemoStore();
       data.sessions[sessionId].status = status;
@@ -271,8 +252,6 @@ async function renderRoute() {
     renderScreen(route.sessionId);
   } else if (route.page === "admin") {
     renderAdmin(route.sessionId);
-  } else if (route.page === "download") {
-    renderDownloadPage(route.sessionId);
   } else {
     renderVote(route.sessionId);
   }
@@ -296,7 +275,7 @@ function parseRoute() {
 
   const parts = window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
   return {
-    page: ["vote", "screen", "admin", "download"].includes(parts[0]) ? parts[0] : "vote",
+    page: ["vote", "screen", "admin"].includes(parts[0]) ? parts[0] : "vote",
     sessionId: parts[1] || DEMO_SESSION_ID,
   };
 }
@@ -309,7 +288,6 @@ function pageFromPath() {
   if (page === "poll") return "vote";
   if (page === "output") return "screen";
   if (page === "adm") return "admin";
-  if (page === "download") return "download";
   return "";
 }
 
@@ -402,7 +380,6 @@ function renderScreen(sessionId) {
   let previousCounts = {};
   let previousRanking = [];
   let previousTotal = 0;
-  let resourceFetchKey = "";
 
   const stopStore = store.subscribe(sessionId, (state) => {
     if (!state?.question) {
@@ -419,8 +396,6 @@ function renderScreen(sessionId) {
     const pieChart = app.querySelector("[data-pie-chart]");
     const results = app.querySelector("[data-results]");
     const liveBadges = app.querySelectorAll("[data-live-badge]");
-    const downloadPanel = app.querySelector("[data-download-panel]");
-    const downloadList = app.querySelector("[data-download-list]");
 
     if (!sessionTitle || !questionText || !totalVotes || !pieChart || !results || !liveBadges.length) {
       return;
@@ -477,16 +452,6 @@ function renderScreen(sessionId) {
     previousCounts = counts;
     previousRanking = ranking.map((item) => item.id);
     previousTotal = total;
-
-    const nextResourceFetchKey = JSON.stringify({
-      api: session.resourceApiUrl || "",
-      manual: normalizeManualResources(session.manualResources),
-    });
-
-    if (nextResourceFetchKey !== resourceFetchKey) {
-      resourceFetchKey = nextResourceFetchKey;
-      renderDownloadResources(downloadPanel, downloadList, session);
-    }
   });
 
   unsubscribe = () => {
@@ -503,11 +468,6 @@ function renderAdmin(sessionId) {
   const status = app.querySelector("[data-admin-status]");
   const voteLink = app.querySelector("[data-vote-link]");
   const screenLink = app.querySelector("[data-screen-link]");
-  const downloadLink = app.querySelector("[data-download-link]");
-  const resourceSourceForm = app.querySelector("[data-resource-source-form]");
-  const manualResourceForm = app.querySelector("[data-manual-resource-form]");
-  const manualResources = app.querySelector("[data-manual-resources]");
-  const resourceStatus = app.querySelector("[data-resource-status]");
   if (voteLink) {
     voteLink.href = buildPageUrl("poll");
     voteLink.target = "_blank";
@@ -517,11 +477,6 @@ function renderAdmin(sessionId) {
     screenLink.href = buildPageUrl("output");
     screenLink.target = "_blank";
     screenLink.rel = "noopener noreferrer";
-  }
-  if (downloadLink) {
-    downloadLink.href = buildPageUrl("download");
-    downloadLink.target = "_blank";
-    downloadLink.rel = "noopener noreferrer";
   }
 
   let currentState = null;
@@ -533,8 +488,6 @@ function renderAdmin(sessionId) {
     form.elements.question.value = state.question.text;
     form.elements.options.value = state.question.options.map((option) => option.text).join("\n");
     status.textContent = `目前狀態：${state.question.status}，票數：${state.votes.length}`;
-    resourceSourceForm.elements.resourceApiUrl.value = state.session.resourceApiUrl || "";
-    renderManualResourceAdmin(manualResources, normalizeManualResources(state.session.manualResources));
   });
 
   form.addEventListener("submit", async (event) => {
@@ -577,57 +530,6 @@ function renderAdmin(sessionId) {
     }
   });
 
-  resourceSourceForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!currentState?.session) return;
-    await saveResources(sessionId, currentState.session, {
-      resourceApiUrl: fieldValue(resourceSourceForm, "resourceApiUrl"),
-    });
-    resourceStatus.textContent = "下載來源已儲存。";
-  });
-
-  app.querySelector("[data-test-resource-source]").addEventListener("click", async () => {
-    const resourceApiUrl = fieldValue(resourceSourceForm, "resourceApiUrl");
-    resourceStatus.textContent = "正在測試下載清單 API...";
-
-    try {
-      const items = await fetchDownloadResources(resourceApiUrl);
-      resourceStatus.textContent = `讀取成功：${items.length} 筆 Drive/Sheet 項目。`;
-    } catch (error) {
-      resourceStatus.textContent = `讀取失敗：${error.message}`;
-    }
-  });
-
-  manualResourceForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!currentState?.session) return;
-
-    const resource = normalizeResource({
-      id: crypto.randomUUID(),
-      title: fieldValue(manualResourceForm, "title"),
-      description: fieldValue(manualResourceForm, "description"),
-      type: fieldValue(manualResourceForm, "type"),
-      value: fieldValue(manualResourceForm, "value"),
-      category: fieldValue(manualResourceForm, "category") || "手動項目",
-      order: Date.now(),
-      enabled: true,
-    });
-    const nextResources = [...normalizeManualResources(currentState.session.manualResources), resource];
-    await saveResources(sessionId, currentState.session, { manualResources: nextResources });
-    manualResourceForm.reset();
-    resourceStatus.textContent = "手動項目已新增。";
-  });
-
-  manualResources.addEventListener("click", async (event) => {
-    const button = event.target.closest("[data-remove-resource]");
-    if (!button || !currentState?.session) return;
-
-    const nextResources = normalizeManualResources(currentState.session.manualResources).filter(
-      (resource) => resource.id !== button.dataset.removeResource,
-    );
-    await saveResources(sessionId, currentState.session, { manualResources: nextResources });
-    resourceStatus.textContent = "手動項目已移除。";
-  });
 }
 
 function renderDownloadPage(sessionId) {

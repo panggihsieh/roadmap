@@ -67,13 +67,6 @@
           <div class="result-list" data-results></div>
         </div>
         <div class="total-votes" data-total-votes></div>
-        <section class="download-panel" data-download-panel hidden>
-          <div class="download-panel-head">
-            <p>Workshop Downloads</p>
-            <h2>研習下載列表</h2>
-          </div>
-          <div class="download-list" data-download-list></div>
-        </section>
       </section>
     </template>
 
@@ -109,55 +102,9 @@
           <button type="button" class="danger" data-reset>清除目前題目票數</button>
           <p class="muted" data-admin-status></p>
         </section>
-
-        <section class="panel download-admin">
-          <h2>研習下載列表</h2>
-          <div class="link-list">
-            <a data-download-link target="_blank" rel="noopener noreferrer">開啟學生下載頁</a>
-          </div>
-          <form data-resource-source-form>
-            <label>
-              <span>Google Sheet / GAS 下載清單 API URL</span>
-              <input name="resourceApiUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec">
-            </label>
-            <div class="button-row">
-              <button type="submit">儲存下載來源</button>
-              <button type="button" class="secondary" data-test-resource-source>測試讀取</button>
-            </div>
-          </form>
-          <form data-manual-resource-form>
-            <label>
-              <span>標題</span>
-              <input name="title" type="text" required>
-            </label>
-            <label>
-              <span>說明</span>
-              <textarea name="description" rows="2"></textarea>
-            </label>
-            <label>
-              <span>類型</span>
-              <select name="type">
-                <option value="url">外部 URL</option>
-                <option value="command">命令列 / PowerShell</option>
-                <option value="drive">手動 Drive 連結</option>
-              </select>
-            </label>
-            <label>
-              <span>URL 或命令列</span>
-              <textarea name="value" rows="3" required></textarea>
-            </label>
-            <label>
-              <span>分類</span>
-              <input name="category" type="text" placeholder="課程資料">
-            </label>
-            <button type="submit">新增手動項目</button>
-          </form>
-          <div class="manual-resource-list" data-manual-resources></div>
-          <p class="muted" data-resource-status></p>
-        </section>
       </section>
     </template>
 
-    <script type="module" src="../app.js?v=download-page-1"></script>
+    <script type="module" src="../app.js?v=aligned-v3"></script>
   </body>
 </html>
