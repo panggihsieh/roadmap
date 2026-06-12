@@ -1135,6 +1135,67 @@ body.lock-student .toggle-container {
   display: none !important;
 }
 
+/* Cute Mascot Animations */
+.cute-mascot-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 24px;
+  position: relative;
+  height: 120px;
+  width: 100%;
+}
+
+.cute-mascot {
+  overflow: visible;
+}
+
+.mascot-float {
+  animation: floatMascot 3s ease-in-out infinite alternate;
+}
+
+.mascot-shadow {
+  animation: scaleShadow 3s ease-in-out infinite alternate;
+  transform-origin: 50px 85px;
+}
+
+.mascot-left-arm {
+  animation: waveArm 1.5s ease-in-out infinite alternate;
+}
+
+.mascot-eye {
+  animation: blinkEyes 4s infinite;
+}
+
+.mascot-light {
+  animation: pulseLight 1s ease-in-out infinite alternate;
+}
+
+@keyframes floatMascot {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-12px); }
+}
+
+@keyframes scaleShadow {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(0.6); opacity: 0.3; }
+}
+
+@keyframes waveArm {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(30deg); }
+}
+
+@keyframes blinkEyes {
+  0%, 95%, 100% { transform: scaleY(1); }
+  97.5% { transform: scaleY(0.1); }
+}
+
+@keyframes pulseLight {
+  0% { fill: #ec4899; filter: drop-shadow(0 0 1px #ec4899); }
+  100% { fill: #ff71ce; filter: drop-shadow(0 0 8px #ec4899); }
+}
+
 /* Responsive Rules for Small Screens */
 @media (max-width: 1024px) {
   body {
