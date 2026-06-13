@@ -565,11 +565,12 @@ function renderDownloadPage(sessionId) {
 function defaultQuestion() {
   return {
     id: "q1",
-    text: "今天你最想優先練習哪一個主題？",
+    text: "您認為這個計畫最有幫助的是？",
     options: [
-      { id: "a", text: "Firebase 即時資料" },
-      { id: "b", text: "前端互動畫面" },
-      { id: "c", text: "部署與現場測試" },
+      { id: "a", text: "客製化教學系統(教材 教具 評量)" },
+      { id: "b", text: "師生雙方的 KPI表現 (報告 計畫 比賽)" },
+      { id: "c", text: "學生可以更有效學習 (學輔 學測 私中考試 各類比賽)" },
+      { id: "d", text: "影響不大" },
     ],
     status: "open",
     order: 1,
