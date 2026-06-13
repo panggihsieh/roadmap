@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>&#39770;&#39592;&#22294;&#20114;&#21205;&#32232;&#36655;&#22120;</title>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Fishbone / Ishikawa</p>
+        <h1>&#39770;&#39592;&#22294;&#20114;&#21205;&#32232;&#36655;&#22120;</h1>
+        <p class="subtitle">
+          &#20197; X6 &#28858;&#26680;&#24515;&#30340;&#26368;&#31934;&#31777;&#21069;&#31471;&#29256;&#65292;&#21487;&#25302;&#25289;&#22240;&#26524;&#31680;&#40670;&#20006;&#30452;&#25509;&#32232;&#36655;&#20027;&#38988;&#33287;&#25551;&#36848;&#12290;
+        </p>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="board-card">
+        <div class="board-toolbar">
+          <button id="addCauseButton" type="button">&#26032;&#22686;&#22240;&#26524;&#31680;&#40670;</button>
+          <span>&#25302;&#25289;&#31680;&#40670;&#35519;&#25972;&#20301;&#32622;&#65292;&#40670;&#36984;&#31680;&#40670;&#32232;&#36655;&#20839;&#23481;</span>
+        </div>
+        <div id="graph" class="graph"></div>
+      </section>
+
+      <aside class="panel">
+        <h2>&#31680;&#40670;&#20839;&#23481;</h2>
+        <p id="selectionHint" class="panel-hint">&#35531;&#20808;&#40670;&#36984;&#22294;&#19978;&#30340;&#31680;&#40670;&#12290;</p>
+        <form id="nodeForm" class="node-form">
+          <label>
+            &#20027;&#38988;
+            <input id="nodeLabel" name="label" type="text" placeholder="&#36664;&#20837;&#31680;&#40670;&#20027;&#38988;" disabled>
+          </label>
+          <label>
+            &#25551;&#36848;
+            <textarea id="nodeDescription" name="description" rows="7" placeholder="&#36664;&#20837;&#20839;&#23481;&#25551;&#36848;" disabled></textarea>
+          </label>
+        </form>
+      </aside>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/@antv/x6/dist/x6.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

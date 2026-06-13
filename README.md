@@ -1,47 +1,87 @@
-# 研習工作坊專案集 (Roadmap)
+# 研習魔法
 
-本儲存庫（Repository）包含以下兩個主要專案：
+本專案通稱為「研習魔法」，目前包含兩個子專案：
 
----
+- `vote/`
+  即時互動投票系統，適合課堂、研習與活動現場使用。
+- `learningmap/`
+  以樹狀圖呈現的學習地圖，可讀取 Google Sheet 並輸出學生用分享頁。
+- `fishbones/`
+  以 AntV X6 製作的魚骨圖互動編輯器，可拖拉節點並編輯主題與描述。
 
-## 1. 🗳️ 大南國小線上投票系統 (vote)
+## Structure
 
-即時互動投票系統，適合研習、課堂或活動現場快速進行類似 Slido 的即時投票。採純前端頁面搭配 Firebase Cloud Firestore。
+- `index.html`
+  專案入口頁。
+- `portal.css`
+  入口頁樣式。
+- `vote/`
+  投票系統。
+- `learningmap/`
+  學習地圖。
+- `fishbones/`
+  魚骨圖互動編輯器。
+- `設計注意事項.md`
+  記錄踩坑原因、修正方式與後續設計準則。
 
-* **專案路徑**：[vote/](vote/)
-* **功能簡介**：
-  * **主持人管理頁 (`/vote/adm/`)**：編輯活動名稱、題目與選項，開放/關閉投票，清除票數，設定下載清單 API。
-  * **觀眾投票頁 (`/vote/poll/`)**：顯示目前題目與選項，觀眾進行匿名投票，並附有分享用的 QR Code。
-  * **現場輸出頁 (`/vote/output/`)**：大螢幕投影專用，即時顯示票數百分比、圓餅圖、排行榜超車提示與倒數封盤功能。
-* **詳細文件**：請參閱 [vote/README.md](vote/README.md)
+## Tech Stack
 
----
+- HTML5
+- CSS3
+- Vanilla JavaScript
+- Google Sheets CSV / `htmlview` 讀取
+- LocalStorage
+- GitHub Pages
+- Firebase / Firestore
+  使用於 `vote/` 模組
 
-## 2. 🗺️ 課程學習地圖 (learningmap)
+## Local Development
 
-具備高度美感、互動性與實用價值的「研習課程學習地圖」。
-
-* **專案路徑**：[learningmap/](learningmap/)
-* **功能簡介**：
-  * **教師與學生雙模式**：學生模式（雙欄版面，專注閱讀）、教師模式（三欄版面，含 CSV 載入與參數設定後台）。
-  * **樹狀目錄與連動選取**：支援階層式目錄摺疊/展開，核取方塊支援雙向階層連動與半勾選狀態。
-  * **學生專用獨立連結**：可生成專用 URL，點選進入後將完全隱藏教師後台與設定面板。
-  * **彈性 PDF 匯出**：可選擇匯出全部、勾選項目或單一項目，具備列印最佳化 CSS。
-* **詳細文件**：主要程式結構請參考 [learningmap/index.html](learningmap/index.html) 與 [learningmap/app.js](learningmap/app.js)
-
----
-
-## 🌐 本機開發與預覽
-
-您可以使用任何簡易 HTTP 伺服器在根目錄啟動專案，例如：
+在根目錄啟動靜態伺服器即可：
 
 ```bash
-# 使用 Python 啟動本機伺服器
 python -m http.server 8000
 ```
 
-啟動後，可在瀏覽器打開以下連結進行預覽與開發：
-* **投票系統管理頁**：[http://localhost:8000/vote/adm/](http://localhost:8000/vote/adm/)
-* **投票系統觀眾頁**：[http://localhost:8000/vote/poll/](http://localhost:8000/vote/poll/)
-* **投票系統輸出頁**：[http://localhost:8000/vote/output/](http://localhost:8000/vote/output/)
-* **學習地圖網頁**：[http://localhost:8000/learningmap/index.html](http://localhost:8000/learningmap/index.html)
+開啟：
+
+- `http://localhost:8000/`
+- `http://localhost:8000/vote/adm/`
+- `http://localhost:8000/vote/poll/`
+- `http://localhost:8000/vote/output/`
+- `http://localhost:8000/learningmap/index.html`
+- `http://localhost:8000/fishbones/`
+
+## Fishbones Notes
+
+- 採用 `HTML + CSS + Vanilla JavaScript + AntV X6 CDN`。
+- 魚骨圖互動方式與節點畫布技術參考 [antvis/x6](https://github.com/antvis/x6)。
+- 目前提供最精簡版本：主題節點、因果節點、拖拉調整、點選後右側編輯主題與描述。
+- 不含後端儲存、多人協作、匯出功能與自動排版。
+
+## Skills Used
+
+- `karpathy-guidelines`
+  用來約束本次實作維持最小範圍、先列 plan 再 build，並避免過度設計。
+
+## Learningmap Notes
+
+- 學生頁預設會讀取 Google Sheet 的 `now` tab。
+- 所有後端資料庫與 Google Sheet 內容需由使用者自行維護，不在 Web App 上直接維護。
+- 樹狀圖排序依 `rank` 欄位數值決定。
+- 若 Google Sheet 內容改變，頁面會自動重抓並更新樹狀圖。
+- 若正式站沒有立刻反映，優先檢查快取與分享連結參數。
+
+## Task Checklist
+
+- [x] 建立入口頁
+- [x] 建立即時投票系統基礎頁面
+- [x] 建立學習地圖樹狀圖介面
+- [x] 支援 Google Sheet 載入資料
+- [x] 限制 learningmap 只讀取 `now` tab
+- [x] 支援學生頁分享連結
+- [x] 修正學生頁卷軸問題
+- [x] 修正 GitHub Pages 快取問題
+- [x] 支援 Google Sheet 自動同步更新
+- [ ] 補上更清楚的資料來源狀態提示
+- [ ] 補上更多正式測試流程文件
