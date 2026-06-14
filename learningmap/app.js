@@ -1695,8 +1695,46 @@ function showItemDetail(item) {
     }
   }
 
-  if (!item) {
+  if (!item && appState.currentMode === 'student') {
     container.innerHTML = `
+      <div class="detail-card">
+        ${getHandRaisePanelMarkup(null)}
+        ${getStudentHandRaiseDetailMarkup()}
+        <div id="right-sheet-tabs-container" style="display: none; margin-top: 24px; padding-top: 20px; border-top: 1px dashed rgba(255, 255, 255, 0.15); width: 100%;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--text-color); font-weight: 500; text-align: center;">
+            撌乩?銵典??翰????
+          </h4>
+          <div id="right-sheet-tabs-list" class="sheet-tabs-container" style="justify-content: center;">
+            <!-- Will be filled dynamically -->
+          </div>
+        </div>
+      </div>
+    `;
+    setTimeout(() => {
+      renderSheetTabsUI();
+      wireHandRaiseComposer(null);
+      renderTeacherHandRaisePanel();
+    }, 0);
+    return;
+  }
+
+  if (!item) {
+    if (appState.currentMode === 'teacher') {
+      container.innerHTML = `
+        <div class="detail-card">
+          ${getTeacherHandRaiseDetailMarkup()}
+          <div id="right-sheet-tabs-container" style="display: none; margin-top: 24px; padding-top: 20px; border-top: 1px dashed rgba(255, 255, 255, 0.15); width: 100%;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--text-color); font-weight: 500; text-align: center;">
+              撌乩?銵典??翰????
+            </h4>
+            <div id="right-sheet-tabs-list" class="sheet-tabs-container" style="justify-content: center;">
+              <!-- Will be filled dynamically -->
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
       <div class="detail-empty-state">
         <div class="cute-mascot-container">
           <svg class="cute-mascot" viewBox="0 0 100 100" width="120" height="120">
@@ -1739,7 +1777,8 @@ function showItemDetail(item) {
           </div>
         </div>
       </div>
-    `;
+      `;
+    }
     setTimeout(() => {
       renderSheetTabsUI();
       wireHandRaiseComposer(null);
@@ -1750,6 +1789,7 @@ function showItemDetail(item) {
 
   container.innerHTML = `
     <div class="detail-card">
+      ${getHandRaisePanelMarkup(item)}
       <div class="detail-header-section">
         <span class="detail-category-path">${item.categoryPath.replace(/\//g, ' › ')}</span>
         <h3 class="detail-title">${item.name}</h3>
@@ -1779,7 +1819,6 @@ function showItemDetail(item) {
         </div>
       ` : ''}
       ${getTeacherHandRaiseDetailMarkup()}${getStudentHandRaiseDetailMarkup()}
-      ${getHandRaisePanelMarkup(item)}
     </div>
   `;
   wireHandRaiseComposer(item);
