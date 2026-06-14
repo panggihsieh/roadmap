@@ -875,9 +875,7 @@ function formatHandRaiseTime(entry) {
 
 function getFilteredHandRaiseEntries() {
   let entries = handRaiseEntries;
-  if (appState.currentMode === 'teacher') {
-    entries = entries.filter((entry) => entry.status !== 'resolved');
-  }
+  entries = entries.filter((entry) => entry.status !== 'resolved');
   if (!teacherHandRaiseRecentOnly || appState.currentMode !== 'teacher') return entries;
   const cutoff = Date.now() - HAND_RAISE_RECENT_WINDOW_MS;
   return entries.filter((entry) => (entry.createdAtMs || 0) >= cutoff);
@@ -925,7 +923,7 @@ function renderTeacherHandRaisePanel() {
   if (stuckEl) stuckEl.innerText = String(filteredEntries.filter((item) => item.type === 'stuck').length);
   if (listEl) listEl.innerHTML = getTeacherHandRaiseListMarkup(filteredEntries, emptyMessage, 'teacher');
   if (detailListEl) detailListEl.innerHTML = getTeacherHandRaiseListMarkup(filteredEntries, emptyMessage, 'teacher');
-  if (studentDetailListEl) studentDetailListEl.innerHTML = getTeacherHandRaiseListMarkup(handRaiseEntries, '目前還沒有學生提問結果。', 'student');
+  if (studentDetailListEl) studentDetailListEl.innerHTML = getTeacherHandRaiseListMarkup(filteredEntries, '目前還沒有學生提問結果。', 'student');
 }
 
 function getTeacherHandRaiseDetailMarkup() {
@@ -954,6 +952,7 @@ function getStudentHandRaiseDetailMarkup() {
 }
 
 function getHandRaisePanelMarkup(item) {
+  if (appState.currentMode !== 'student') return '';
   const chips = HAND_RAISE_PRESETS.map((preset) => `
     <button class="hand-raise-chip" type="button" data-hand-raise-type="${preset.type}" data-hand-raise-label="${preset.label}" data-hand-raise-message="${preset.message}">
       ${preset.label}
