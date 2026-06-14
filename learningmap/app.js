@@ -872,28 +872,12 @@ function getFilteredHandRaiseEntries() {
   return handRaiseEntries.filter((entry) => (entry.createdAtMs || 0) >= cutoff);
 }
 
-function renderTeacherHandRaisePanel() {
-  const totalEl = document.getElementById('teacher-hand-raise-total');
-  const repeatEl = document.getElementById('teacher-hand-raise-repeat');
-  const stuckEl = document.getElementById('teacher-hand-raise-stuck');
-  const listEl = document.getElementById('teacher-hand-raise-list');
-
-  if (!totalEl || !repeatEl || !stuckEl || !listEl) return;
-
-  const filteredEntries = getFilteredHandRaiseEntries();
-
-  totalEl.innerText = String(filteredEntries.length);
-  repeatEl.innerText = String(filteredEntries.filter((item) => item.type === 'repeat').length);
-  stuckEl.innerText = String(filteredEntries.filter((item) => item.type === 'stuck').length);
-
+function getTeacherHandRaiseListMarkup(filteredEntries, emptyMessage) {
   if (filteredEntries.length === 0) {
-    listEl.innerHTML = teacherHandRaiseRecentOnly
-      ? '<div class="teacher-live-empty">最近 5 分鐘內沒有新的學生提問。</div>'
-      : '<div class="teacher-live-empty">目前還沒有學生提問。</div>';
-    return;
+    return `<div class="teacher-live-empty">${emptyMessage}</div>`;
   }
 
-  listEl.innerHTML = filteredEntries.slice(0, 20).map((entry) => `
+  return filteredEntries.slice(0, 20).map((entry) => `
     <article class="teacher-live-item">
       <div class="teacher-live-item-header">
         <span class="teacher-live-type">${entry.label || entry.type || '提問'}</span>
@@ -910,6 +894,36 @@ function renderTeacherHandRaisePanel() {
       </div>
     </article>
   `).join('');
+}
+
+function renderTeacherHandRaisePanel() {
+  const totalEl = document.getElementById('teacher-hand-raise-total');
+  const repeatEl = document.getElementById('teacher-hand-raise-repeat');
+  const stuckEl = document.getElementById('teacher-hand-raise-stuck');
+  const listEl = document.getElementById('teacher-hand-raise-list');
+  const detailListEl = document.getElementById('teacher-hand-raise-detail-list');
+  const filteredEntries = getFilteredHandRaiseEntries();
+  const emptyMessage = teacherHandRaiseRecentOnly
+    ? '最近 5 分鐘內沒有新的學生提問。'
+    : '目前還沒有學生提問。';
+
+  if (totalEl) totalEl.innerText = String(filteredEntries.length);
+  if (repeatEl) repeatEl.innerText = String(filteredEntries.filter((item) => item.type === 'repeat').length);
+  if (stuckEl) stuckEl.innerText = String(filteredEntries.filter((item) => item.type === 'stuck').length);
+  if (listEl) listEl.innerHTML = getTeacherHandRaiseListMarkup(filteredEntries, emptyMessage);
+  if (detailListEl) detailListEl.innerHTML = getTeacherHandRaiseListMarkup(filteredEntries, emptyMessage);
+}
+
+function getTeacherHandRaiseDetailMarkup() {
+  if (appState.currentMode !== 'teacher') return '';
+  return `
+    <section class="detail-section teacher-hand-raise-detail-panel">
+      <h4>學生提問結果</h4>
+      <div id="teacher-hand-raise-detail-list" class="teacher-live-list">
+        <div class="teacher-live-empty">目前還沒有學生提問。</div>
+      </div>
+    </section>
+  `;
 }
 
 function getHandRaisePanelMarkup(item) {
@@ -1691,6 +1705,7 @@ function showItemDetail(item) {
         </div>
         <h3>請點選左側目錄中的學習物件</h3>
         <p>點選後在此處將會顯示詳細下載連結與學習描述說明。</p>
+        ${getTeacherHandRaiseDetailMarkup()}
         ${getHandRaisePanelMarkup(null)}
         <div id="right-sheet-tabs-container" style="display: none; margin-top: 24px; padding-top: 20px; border-top: 1px dashed rgba(255, 255, 255, 0.15); width: 100%;">
           <h4 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--text-color); font-weight: 500; text-align: center;">
@@ -1705,6 +1720,7 @@ function showItemDetail(item) {
     setTimeout(() => {
       renderSheetTabsUI();
       wireHandRaiseComposer(null);
+      renderTeacherHandRaisePanel();
     }, 0);
     return;
   }
@@ -1739,10 +1755,12 @@ function showItemDetail(item) {
           </div>
         </div>
       ` : ''}
+      ${getTeacherHandRaiseDetailMarkup()}
       ${getHandRaisePanelMarkup(item)}
     </div>
   `;
   wireHandRaiseComposer(item);
+  renderTeacherHandRaisePanel();
 }
 
 // Update Supplementary Section display
