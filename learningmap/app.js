@@ -407,6 +407,7 @@ async function createHandRaiseStore() {
     getFirestore,
     onSnapshot,
     serverTimestamp,
+    setDoc,
     updateDoc,
   } = await import('https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js');
 
@@ -414,9 +415,20 @@ async function createHandRaiseStore() {
     || initializeApp(firebaseConfig, 'learningmap-handraise');
   const db = getFirestore(firebaseApp);
 
+  async function ensureSessionDoc(sessionId) {
+    await setDoc(doc(db, 'sessions', sessionId), {
+      title: appState.workshopTitle || '學習地圖',
+      kind: 'learningmap',
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  }
+
   return {
     subscribe(sessionId, callback) {
-      const ref = collection(db, 'learningmap_sessions', sessionId, 'hand_raises');
+      ensureSessionDoc(sessionId).catch((error) => {
+        console.error('Unable to ensure learningmap session doc:', error);
+      });
+      const ref = collection(db, 'sessions', sessionId, 'hand_raises');
       return onSnapshot(ref, (snapshot) => {
         const entries = snapshot.docs.map((item) => {
           const data = item.data();
@@ -427,23 +439,28 @@ async function createHandRaiseStore() {
           };
         }).sort((a, b) => b.createdAtMs - a.createdAtMs);
         callback(entries);
+      }, (error) => {
+        console.error('Learningmap hand raise subscription failed:', error);
       });
     },
     async submit(sessionId, payload) {
-      const ref = collection(db, 'learningmap_sessions', sessionId, 'hand_raises');
+      await ensureSessionDoc(sessionId);
+      const ref = collection(db, 'sessions', sessionId, 'hand_raises');
       await addDoc(ref, {
         ...payload,
         createdAt: serverTimestamp(),
       });
     },
     async updateStatus(sessionId, entryId, status) {
-      const ref = doc(db, 'learningmap_sessions', sessionId, 'hand_raises', entryId);
+      await ensureSessionDoc(sessionId);
+      const ref = doc(db, 'sessions', sessionId, 'hand_raises', entryId);
       await updateDoc(ref, { status });
     },
     async clear(sessionId) {
-      const ref = collection(db, 'learningmap_sessions', sessionId, 'hand_raises');
+      await ensureSessionDoc(sessionId);
+      const ref = collection(db, 'sessions', sessionId, 'hand_raises');
       const snapshot = await getDocs(ref);
-      await Promise.all(snapshot.docs.map((item) => deleteDoc(doc(db, 'learningmap_sessions', sessionId, 'hand_raises', item.id))));
+      await Promise.all(snapshot.docs.map((item) => deleteDoc(doc(db, 'sessions', sessionId, 'hand_raises', item.id))));
     },
   };
 }
