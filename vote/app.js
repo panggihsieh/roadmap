@@ -57,7 +57,7 @@ async function createFirestoreStore() {
 
       const questionId = "q1";
       await setDoc(sessionRef, {
-        title: "Demo Live Poll",
+        title: "Google edu 的AI 實務分享",
         activeQuestionId: questionId,
         status: "open",
         createdAt: serverTimestamp(),
@@ -165,7 +165,7 @@ function createLocalStore() {
 
       data.sessions[sessionId] = {
         id: sessionId,
-        title: "Demo Live Poll",
+        title: "Google edu 的AI 實務分享",
         activeQuestionId: "q1",
         status: "open",
       };
@@ -565,7 +565,7 @@ function renderDownloadPage(sessionId) {
 function defaultQuestion() {
   return {
     id: "q1",
-    text: "您認為這個計畫最有幫助的是？",
+    text: "這兩年AI的出現改變你教學上甚麼?",
     options: [
       { id: "a", text: "客製化教學系統(教材 教具 評量)" },
       { id: "b", text: "師生雙方的 KPI表現 (報告 計畫 比賽)" },
