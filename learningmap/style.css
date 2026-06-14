@@ -1452,6 +1452,18 @@ body.lock-student .toggle-container {
   display: none !important;
 }
 
+body.lock-student .main-container {
+  grid-template-columns: 1fr;
+}
+
+body.lock-student #panel-detail {
+  grid-row: 1;
+}
+
+body.lock-student #panel-tree {
+  grid-row: 2;
+}
+
 /* Cute Mascot Animations */
 .cute-mascot-container {
   display: flex;
