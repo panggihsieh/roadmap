@@ -347,7 +347,7 @@ button,
   min-height: 84px;
   padding: 20px 28px;
   color: #e5e7eb;
-  font-size: calc(var(--vote-primary-text-size) * 0.9);
+  font-size: calc(var(--vote-primary-text-size) * 0.8);
   text-align: left;
   background: rgba(255, 255, 255, 0.02);
   border-color: var(--line);
