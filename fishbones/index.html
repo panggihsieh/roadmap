@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>&#39770;&#39592;&#22294;&#20114;&#21205;&#32232;&#36655;&#22120;</title>
   <link rel="preconnect" href="https://unpkg.com">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=20260614-1">
 </head>
 <body>
   <div class="page">
@@ -23,9 +23,14 @@
       <section class="board-card">
         <div class="board-toolbar">
           <button id="addCauseButton" type="button">&#26032;&#22686;&#22240;&#26524;&#31680;&#40670;</button>
-          <span>&#25302;&#25289;&#31680;&#40670;&#35519;&#25972;&#20301;&#32622;&#65292;&#40670;&#36984;&#31680;&#40670;&#32232;&#36655;&#20839;&#23481;</span>
+          <span id="selectionBadge" class="selection-badge">
+            &#25302;&#25289;&#31680;&#40670;&#35519;&#25972;&#20301;&#32622;&#65292;&#40670;&#36984;&#31680;&#40670;&#32232;&#36655;&#20839;&#23481;
+          </span>
         </div>
         <div id="graph" class="graph"></div>
+        <p id="actionStatus" class="action-status">
+          &#23578;&#26410;&#22519;&#34892;&#26032;&#22686;&#25805;&#20316;
+        </p>
       </section>
 
       <aside class="panel">
@@ -45,7 +50,6 @@
     </main>
   </div>
 
-  <script src="https://unpkg.com/@antv/x6/dist/x6.js"></script>
-  <script src="./app.js"></script>
+  <script src="./app.js?v=20260614-1"></script>
 </body>
 </html>
