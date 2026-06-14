@@ -15,6 +15,7 @@ let appState = {
 
 const DEFAULT_SHEET_URL = 'https://docs.google.com/spreadsheets/d/18u82OZMeHzkY9W4lYUP2GtJADe2PlwcgQfAF4x2QAQs/edit?usp=sharing';
 const TARGET_SHEET_TAB_NAME = 'now';
+const SUPPLEMENTARY_SHEET_TAB_NAME = 'help';
 const SHEET_AUTO_REFRESH_INTERVAL_MS = 30000;
 const HAND_RAISE_STORAGE_KEY = 'learningmap-hand-raises';
 const HAND_RAISE_SOUND_DATA_KEY = 'learningmap-hand-raise-sound-data';
@@ -595,6 +596,16 @@ function initDOMBindings() {
   suppInput.value = appState.supplementaryInfo;
   if (csvRawInput) csvRawInput.value = appState.rawCSV;
 
+  const sheetGroup = sheetInput?.closest('.form-group');
+  if (sheetGroup) {
+    sheetGroup.style.display = 'none';
+  }
+
+  const shareGroup = document.getElementById('input-share-url')?.closest('.form-group');
+  if (shareGroup) {
+    shareGroup.style.display = 'none';
+  }
+
   // Header Title
   const headerTitle = document.getElementById('header-workshop-title');
   if (headerTitle) headerTitle.innerText = appState.workshopTitle;
@@ -649,7 +660,7 @@ function checkURLParameters() {
     }
 
     const suppParam = urlParams.get('supp');
-    if (suppParam) {
+    if (suppParam && !urlParams.get('sheet')) {
       appState.supplementaryInfo = suppParam;
       updateSupplementaryDisplay();
     }
@@ -735,8 +746,17 @@ function getGoogleSheetCsvUrl(url, gid = null) {
   return null;
 }
 
+function findSheetTabByName(tabs, targetName) {
+  const normalizedName = String(targetName || '').trim().toLowerCase();
+  return (tabs || []).find((tab) => tab.name && tab.name.trim().toLowerCase() === normalizedName);
+}
+
 function findTargetSheetTab(tabs) {
-  return (tabs || []).find(tab => tab.name && tab.name.trim().toLowerCase() === TARGET_SHEET_TAB_NAME);
+  return findSheetTabByName(tabs, TARGET_SHEET_TAB_NAME);
+}
+
+function findSupplementarySheetTab(tabs) {
+  return findSheetTabByName(tabs, SUPPLEMENTARY_SHEET_TAB_NAME);
 }
 
 function stopSheetAutoRefresh() {
@@ -776,7 +796,108 @@ function applySheetCsv(csvText) {
   updateShareLinkInput();
 }
 
-function fetchTargetSheetCsv(url) {
+function applySupplementaryInfo(infoText) {
+  appState.supplementaryInfo = infoText || '';
+  const suppInput = document.getElementById('input-supplement');
+  if (suppInput) suppInput.value = appState.supplementaryInfo;
+  updateSupplementaryDisplay();
+  saveStateToLocalStorage();
+  updateShareLinkInput();
+}
+
+function parseSupplementaryCsv(text) {
+  const rows = [];
+  let row = [''];
+  let insideQuote = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (char === '"') {
+      if (insideQuote && nextChar === '"') {
+        row[row.length - 1] += '"';
+        i++;
+      } else {
+        insideQuote = !insideQuote;
+      }
+    } else if (char === ',' && !insideQuote) {
+      row.push('');
+    } else if ((char === '\r' || char === '\n') && !insideQuote) {
+      if (char === '\r' && nextChar === '\n') i++;
+      if (row.some((cell) => cell.trim() !== '')) {
+        rows.push(row.map((cell) => cell.trim()));
+      }
+      row = [''];
+    } else {
+      row[row.length - 1] += char;
+    }
+  }
+
+  if (row.some((cell) => cell.trim() !== '')) {
+    rows.push(row.map((cell) => cell.trim()));
+  }
+
+  if (rows.length === 0) return '';
+
+  const firstRow = rows[0];
+  const normalizedHeader = firstRow.map((cell) => cell.toLowerCase());
+  const contentColumnIndex = normalizedHeader.findIndex((cell) => (
+    cell === 'content' ||
+    cell === 'text' ||
+    cell === 'description' ||
+    cell === 'supplement' ||
+    cell === 'help' ||
+    cell === '補充說明' ||
+    cell === '說明'
+  ));
+
+  if (contentColumnIndex >= 0 && rows.length > 1) {
+    return rows
+      .slice(1)
+      .map((cells) => cells[contentColumnIndex] || '')
+      .filter((cell) => cell.trim() !== '')
+      .join('\n');
+  }
+
+  if (rows.length > 1 && firstRow.length === 1 && normalizedHeader[0] === '補充說明') {
+    return rows
+      .slice(1)
+      .map((cells) => cells[0] || '')
+      .filter((cell) => cell.trim() !== '')
+      .join('\n');
+  }
+
+  return rows
+    .flat()
+    .filter((cell) => cell.trim() !== '')
+    .join('\n');
+}
+
+function escapeHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatMultilineHtml(text) {
+  return escapeHtml(text).replace(/\n/g, '<br>');
+}
+
+function getSupplementaryDetailMarkup() {
+  if (!appState.supplementaryInfo.trim()) return '';
+  return `
+    <section class="detail-section supplementary-detail-panel">
+      <h4>補充說明</h4>
+      <div class="detail-desc">${formatMultilineHtml(appState.supplementaryInfo)}</div>
+    </section>
+  `;
+}
+
+function fetchTargetSheetCsvLegacy(url) {
   const spreadsheetId = getSpreadsheetId(url);
   if (!spreadsheetId) {
     throw new Error('Invalid Google Sheet URL');
@@ -818,18 +939,84 @@ function fetchTargetSheetCsv(url) {
     });
 }
 
+function fetchSheetTabs(url) {
+  const spreadsheetId = getSpreadsheetId(url);
+  if (!spreadsheetId) {
+    throw new Error('Invalid Google Sheet URL');
+  }
+
+  const htmlViewUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/htmlview`;
+
+  return fetch(htmlViewUrl)
+    .then((response) => {
+      if (!response.ok) throw new Error('CORS or Network error on htmlview');
+      return response.text();
+    })
+    .then((htmlText) => {
+      const regex = /items\.push\(\{name:\s*"([^"]+)",\s*pageUrl:\s*"[^"]*",\s*gid:\s*"([^"]+)"/g;
+      let match;
+      const tabs = [];
+      while ((match = regex.exec(htmlText)) !== null) {
+        tabs.push({ name: match[1], gid: match[2] });
+      }
+      return tabs;
+    });
+}
+
+function fetchSheetTabCsv(url, tab) {
+  if (!tab?.gid) return Promise.resolve('');
+
+  const resolvedSheetUrl = updateUrlGid(url, tab.gid);
+  const csvUrl = `${getGoogleSheetCsvUrl(resolvedSheetUrl, tab.gid)}&t=${Date.now()}`;
+
+  return fetch(csvUrl)
+    .then((response) => {
+      if (!response.ok) throw new Error('Failed to fetch CSV');
+      return response.text();
+    });
+}
+
+function fetchTargetSheetCsv(url) {
+  return fetchSheetTabs(url)
+    .then((tabs) => {
+      const targetTab = findTargetSheetTab(tabs);
+      if (!targetTab) {
+        throw new Error(`Google Sheet missing required "${TARGET_SHEET_TAB_NAME}" tab`);
+      }
+
+      const supplementaryTab = findSupplementarySheetTab(tabs);
+      const resolvedSheetUrl = updateUrlGid(url, targetTab.gid);
+
+      return Promise.all([
+        fetchSheetTabCsv(url, targetTab),
+        supplementaryTab ? fetchSheetTabCsv(url, supplementaryTab) : Promise.resolve(null),
+      ]).then(([csvText, supplementaryCsvText]) => ({
+        csvText,
+        supplementaryCsvText,
+        targetTab,
+        resolvedSheetUrl,
+      }));
+    });
+}
+
 function refreshSheetDataIfNeeded() {
   if (!isSheetAutoRefreshEnabled || !appState.sheetUrl || isSheetAutoRefreshInFlight) return;
 
   isSheetAutoRefreshInFlight = true;
   fetchTargetSheetCsv(appState.sheetUrl)
-    .then(({ csvText, targetTab, resolvedSheetUrl }) => {
+    .then(({ csvText, supplementaryCsvText, targetTab, resolvedSheetUrl }) => {
       appState.sheetTabs = [];
       appState.activeGid = targetTab.gid;
       appState.sheetUrl = resolvedSheetUrl;
 
       if (csvText !== appState.rawCSV) {
         applySheetCsv(csvText);
+      }
+      if (supplementaryCsvText !== null) {
+        const nextSupplementaryInfo = parseSupplementaryCsv(supplementaryCsvText);
+        if (nextSupplementaryInfo !== appState.supplementaryInfo) {
+          applySupplementaryInfo(nextSupplementaryInfo);
+        }
       }
     })
     .catch(error => {
@@ -1105,7 +1292,7 @@ function fetchSheetData(url, targetGid = null) {
   showLoader(true);
 
   fetchTargetSheetCsv(url)
-    .then(({ csvText, targetTab, resolvedSheetUrl }) => {
+    .then(({ csvText, supplementaryCsvText, targetTab, resolvedSheetUrl }) => {
       appState.sheetTabs = [];
       appState.activeGid = targetTab.gid;
       appState.sheetUrl = resolvedSheetUrl;
@@ -1115,6 +1302,9 @@ function fetchSheetData(url, targetGid = null) {
 
       renderSheetTabsUI();
       applySheetCsv(csvText);
+      if (supplementaryCsvText !== null) {
+        applySupplementaryInfo(parseSupplementaryCsv(supplementaryCsvText));
+      }
       startSheetAutoRefresh();
       ensureHandRaiseSubscription();
     })
@@ -1698,6 +1888,7 @@ function showItemDetail(item) {
   if (!item && appState.currentMode === 'student') {
     container.innerHTML = `
       <div class="detail-card">
+        ${getSupplementaryDetailMarkup()}
         ${getHandRaisePanelMarkup(null)}
         ${getStudentHandRaiseDetailMarkup()}
         <div id="right-sheet-tabs-container" style="display: none; margin-top: 24px; padding-top: 20px; border-top: 1px dashed rgba(255, 255, 255, 0.15); width: 100%;">
@@ -1722,6 +1913,7 @@ function showItemDetail(item) {
     if (appState.currentMode === 'teacher') {
       container.innerHTML = `
         <div class="detail-card">
+          ${getSupplementaryDetailMarkup()}
           ${getTeacherHandRaiseDetailMarkup()}
           <div id="right-sheet-tabs-container" style="display: none; margin-top: 24px; padding-top: 20px; border-top: 1px dashed rgba(255, 255, 255, 0.15); width: 100%;">
             <h4 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--text-color); font-weight: 500; text-align: center;">
@@ -1790,6 +1982,7 @@ function showItemDetail(item) {
   container.innerHTML = `
     <div class="detail-card">
       ${getHandRaisePanelMarkup(item)}
+      ${getSupplementaryDetailMarkup()}
       <div class="detail-header-section">
         <span class="detail-category-path">${item.categoryPath.replace(/\//g, ' › ')}</span>
         <h3 class="detail-title">${item.name}</h3>
@@ -1832,18 +2025,18 @@ function updateSupplementaryDisplay() {
   const printSuppSection = document.getElementById('print-supplement-section');
   const printSuppContent = document.getElementById('print-supplement-content');
 
+  if (displaySection) displaySection.classList.add('hidden');
+  if (textDisplay) textDisplay.innerText = appState.supplementaryInfo;
+
   if (appState.supplementaryInfo.trim() !== '') {
-    if (displaySection) displaySection.classList.remove('hidden');
-    if (textDisplay) textDisplay.innerText = appState.supplementaryInfo;
-    
-    // Print views
     if (printSuppSection) printSuppSection.classList.remove('hidden');
     if (printSuppContent) printSuppContent.innerText = appState.supplementaryInfo;
-  } else {
-    if (displaySection) displaySection.classList.add('hidden');
-    
-    // Print views
-    if (printSuppSection) printSuppSection.classList.add('hidden');
+  } else if (printSuppSection) {
+    printSuppSection.classList.add('hidden');
+  }
+
+  if (document.getElementById('detail-container')) {
+    showItemDetail(appState.selectedItem);
   }
 }
 
@@ -2010,12 +2203,11 @@ function handleFileSelect(event) {
 
 // Generate a sharing link encoding the current state
 function generateShareLink() {
-  const baseUrl = window.location.origin + window.location.pathname;
+  const currentUrl = new URL(window.location.href);
+  const baseUrl = new URL('./student/', currentUrl).toString();
   const params = new URLSearchParams();
-  params.set('view', 'student');
   params.set('title', appState.workshopTitle);
   params.set('sheet', appState.sheetUrl);
-  params.set('supp', appState.supplementaryInfo);
   return `${baseUrl}?${params.toString()}`;
 }
 
