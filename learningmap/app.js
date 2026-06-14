@@ -718,6 +718,7 @@ function switchMode(mode) {
   
   // Close dropdown if open
   document.getElementById('pdf-dropdown-menu').classList.add('hidden');
+  showItemDetail(appState.selectedItem);
   renderTeacherHandRaisePanel();
 }
 
@@ -1871,7 +1872,12 @@ function countLeafItems(categoryNode) {
 // Display Detail of selected Item
 function showItemDetail(item) {
   const container = document.getElementById('detail-container');
+  const detailPanel = document.getElementById('panel-detail');
   appState.selectedItem = item;
+
+  if (detailPanel) {
+    detailPanel.scrollTop = 0;
+  }
 
   // Sync details PDF label in dropdown menu
   const selectedDesc = document.getElementById('pdf-selected-name');

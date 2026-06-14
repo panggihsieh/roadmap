@@ -1453,15 +1453,15 @@ body.lock-student .toggle-container {
 }
 
 body.lock-student .main-container {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr) 420px !important;
 }
 
-body.lock-student #panel-detail {
-  grid-row: 1;
+body.lock-student #panel-detail .detail-card {
+  min-height: 100%;
 }
 
-body.lock-student #panel-tree {
-  grid-row: 2;
+body.lock-student #panel-detail .supplementary-detail-panel {
+  margin-top: auto;
 }
 
 /* Cute Mascot Animations */
@@ -1593,4 +1593,8 @@ body.lock-student #panel-tree {
 body.mode-student .sheet-tab-btn {
   font-size: 0.88rem;
   padding: 8px 16px;
+}
+
+body.lock-student .main-container {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px) !important;
 }
