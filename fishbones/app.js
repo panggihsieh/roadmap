@@ -3,8 +3,14 @@ const addCauseButton = document.getElementById('addCauseButton')
 const selectionHint = document.getElementById('selectionHint')
 const selectionBadge = document.getElementById('selectionBadge')
 const actionStatus = document.getElementById('actionStatus')
+const sheetUrlInput = document.getElementById('sheetUrlInput')
+const loadSheetButton = document.getElementById('loadSheetButton')
+const sheetStatus = document.getElementById('sheetStatus')
 const nodeLabelInput = document.getElementById('nodeLabel')
 const nodeDescriptionInput = document.getElementById('nodeDescription')
+
+const STORAGE_KEY_SHEET_URL = 'fishbones_sheet_url'
+const SHEET_TAB_NAME = 'fishbones'
 
 const TEXT = {
   defaultTheme: '\u6838\u5fc3\u4e3b\u984c',
@@ -65,7 +71,78 @@ function makeNode(config) {
 }
 
 function initialize() {
-  state.nodes = [
+  setNodes(buildDefaultNodes())
+  render()
+  selectNode('effect')
+  bindEvents()
+  restoreSheetUrl()
+
+  if (sheetUrlInput.value) {
+    loadSheetData(sheetUrlInput.value)
+  }
+}
+
+function bindEvents() {
+  addCauseButton.addEventListener('click', () => {
+    const index = state.causeCount
+    const slot = state.addSlots[index % state.addSlots.length]
+    const newNode = makeNode({
+      id: `cause-${index + 1}`,
+      x: slot.x,
+      y: slot.y,
+      label: `${TEXT.addCause} ${index + 1}`,
+      description: TEXT.addCauseDescription,
+      role: slot.role,
+      fill: '#ffe7d6',
+      stroke: '#c85018',
+    })
+
+    state.nodes.push(newNode)
+    state.causeCount += 1
+    render()
+    selectNode(newNode.id)
+    updateActionStatus(`\u6309\u9215\u5df2\u89f8\u767c\uff0c\u5df2\u65b0\u589e\uff1a${newNode.label}`)
+  })
+
+  loadSheetButton.addEventListener('click', () => {
+    loadSheetData(sheetUrlInput.value.trim())
+  })
+
+  nodeLabelInput.addEventListener('input', (event) => {
+    const node = getSelectedNode()
+    if (!node) {
+      return
+    }
+
+    node.label = event.target.value || TEXT.unnamed
+    render()
+    selectNode(node.id)
+  })
+
+  nodeDescriptionInput.addEventListener('input', (event) => {
+    const node = getSelectedNode()
+    if (!node) {
+      return
+    }
+
+    node.description = event.target.value
+    updateActionStatus(`\u76ee\u524d\u9078\u53d6\uff1a${node.label}`)
+  })
+
+  graphContainer.addEventListener('pointermove', onPointerMove)
+  graphContainer.addEventListener('pointerup', stopDragging)
+  graphContainer.addEventListener('pointerleave', stopDragging)
+  graphContainer.addEventListener('click', (event) => {
+    if (event.target === graphContainer || event.target === board || event.target === svg || event.target === linesLayer) {
+      clearSelection()
+    }
+  })
+
+  window.addEventListener('resize', render)
+}
+
+function buildDefaultNodes() {
+  return [
     makeNode({
       id: 'effect',
       x: 700,
@@ -111,66 +188,262 @@ function initialize() {
       role: 'cause-bottom',
     }),
   ]
-
-  state.causeCount = 4
-  render()
-  selectNode('effect')
-  bindEvents()
 }
 
-function bindEvents() {
-  addCauseButton.addEventListener('click', () => {
-    const index = state.causeCount
+function setNodes(nodes) {
+  state.nodes = nodes
+  state.causeCount = nodes.filter((node) => node.role !== 'effect').length
+}
+
+async function loadSheetData(url) {
+  if (!isGoogleSheetUrl(url)) {
+    updateSheetStatus('\u8acb\u8f38\u5165\u6709\u6548\u7684 Google Sheet \u9023\u7d50\u3002')
+    return
+  }
+
+  loadSheetButton.disabled = true
+  updateSheetStatus(`\u6b63\u5728\u8f09\u5165 ${SHEET_TAB_NAME} tab...`)
+
+  try {
+    const { csvText, resolvedSheetUrl } = await fetchFishbonesCsv(url)
+    const nodes = buildNodesFromSheetCsv(csvText)
+    setNodes(nodes)
+    sheetUrlInput.value = resolvedSheetUrl
+    localStorage.setItem(STORAGE_KEY_SHEET_URL, resolvedSheetUrl)
+    render()
+    selectNode('effect')
+    updateSheetStatus(`\u5df2\u8f09\u5165 ${state.causeCount} \u500b\u56e0\u679c\u7bc0\u9ede\u3002`)
+    updateActionStatus(`\u5df2\u5f9e Google Sheet \u8f09\u5165 ${state.causeCount} \u500b\u56e0\u679c\u7bc0\u9ede`)
+  } catch (error) {
+    updateSheetStatus(`\u8f09\u5165\u5931\u6557\uff1a${error.message}`)
+  } finally {
+    loadSheetButton.disabled = false
+  }
+}
+
+function restoreSheetUrl() {
+  const urlParams = new URLSearchParams(window.location.search)
+  const urlParam = urlParams.get('sheet')
+  const savedUrl = localStorage.getItem(STORAGE_KEY_SHEET_URL)
+  sheetUrlInput.value = urlParam || savedUrl || ''
+}
+
+function updateSheetStatus(text) {
+  if (sheetStatus) {
+    sheetStatus.textContent = text
+  }
+}
+
+function isGoogleSheetUrl(url) {
+  return typeof url === 'string' && /docs\.google\.com\/spreadsheets\/d\//.test(url)
+}
+
+function getSpreadsheetId(url) {
+  const match = String(url || '').match(/\/d\/([a-zA-Z0-9-_]+)/)
+  return match ? match[1] : ''
+}
+
+function getGoogleSheetCsvUrl(url, gid) {
+  const spreadsheetId = getSpreadsheetId(url)
+  if (!spreadsheetId) {
+    return ''
+  }
+
+  return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid || '0'}`
+}
+
+function updateUrlGid(url, gid) {
+  const spreadsheetId = getSpreadsheetId(url)
+  if (!spreadsheetId) {
+    return url
+  }
+
+  return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=${gid}`
+}
+
+async function fetchFishbonesCsv(url) {
+  const spreadsheetId = getSpreadsheetId(url)
+  if (!spreadsheetId) {
+    throw new Error('Google Sheet \u9023\u7d50\u683c\u5f0f\u932f\u8aa4')
+  }
+
+  const htmlViewUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/htmlview`
+  const htmlResponse = await fetch(htmlViewUrl)
+  if (!htmlResponse.ok) {
+    throw new Error('Google Sheet htmlview \u8f09\u5165\u5931\u6557')
+  }
+
+  const htmlText = await htmlResponse.text()
+  const tabs = extractSheetTabs(htmlText)
+  const targetTab = tabs.find((tab) => tab.name.trim().toLowerCase() === SHEET_TAB_NAME)
+  if (!targetTab) {
+    throw new Error(`Google Sheet \u627e\u4e0d\u5230 "${SHEET_TAB_NAME}" tab`)
+  }
+
+  const resolvedSheetUrl = updateUrlGid(url, targetTab.gid)
+  const csvUrl = `${getGoogleSheetCsvUrl(resolvedSheetUrl, targetTab.gid)}&t=${Date.now()}`
+  const csvResponse = await fetch(csvUrl)
+  if (!csvResponse.ok) {
+    throw new Error('fishbones CSV \u8f09\u5165\u5931\u6557')
+  }
+
+  return {
+    csvText: await csvResponse.text(),
+    resolvedSheetUrl,
+  }
+}
+
+function extractSheetTabs(htmlText) {
+  const tabs = []
+  const regex = /items\.push\(\{name:\s*"([^"]+)",\s*pageUrl:\s*"[^"]*",\s*gid:\s*"([^"]+)"/g
+  let match
+
+  while ((match = regex.exec(htmlText)) !== null) {
+    tabs.push({ name: match[1], gid: match[2] })
+  }
+
+  return tabs
+}
+
+function buildNodesFromSheetCsv(csvText) {
+  const rows = parseCsv(csvText)
+  if (rows.length === 0) {
+    throw new Error('fishbones tab \u6c92\u6709\u8cc7\u6599')
+  }
+
+  const headers = rows[0].map((cell) => normalizeHeader(cell))
+  const dataRows = rows.slice(1).filter((cells) => cells.some((cell) => String(cell || '').trim() !== ''))
+  const labelIndex = findHeaderIndex(headers, ['label', '\u56e0\u679c', 'cause'])
+  if (labelIndex < 0) {
+    throw new Error('fishbones tab \u7f3a\u5c11 label \u6216 \u56e0\u679c \u6b04\u4f4d')
+  }
+
+  const descriptionIndex = findHeaderIndex(headers, ['description', '\u63cf\u8ff0'])
+  const roleIndex = findHeaderIndex(headers, ['role', '\u4f4d\u7f6e'])
+  const xIndex = findHeaderIndex(headers, ['x'])
+  const yIndex = findHeaderIndex(headers, ['y'])
+  const themeIndex = findHeaderIndex(headers, ['theme', '\u4e3b\u984c'])
+  const themeDescriptionIndex = findHeaderIndex(headers, ['theme_description', '\u4e3b\u984c\u63cf\u8ff0'])
+
+  const themeLabel = firstNonEmptyValue(dataRows, themeIndex) || TEXT.defaultTheme
+  const themeDescription = firstNonEmptyValue(dataRows, themeDescriptionIndex) || TEXT.defaultThemeDescription
+
+  const nodes = [
+    makeNode({
+      id: 'effect',
+      x: 700,
+      y: 258,
+      width: 190,
+      height: 82,
+      label: themeLabel,
+      description: themeDescription,
+      role: 'effect',
+      fill: '#fff0e3',
+      stroke: '#d46a3a',
+    }),
+  ]
+
+  dataRows.forEach((cells, index) => {
+    const label = String(cells[labelIndex] || '').trim()
+    if (!label) {
+      return
+    }
+
     const slot = state.addSlots[index % state.addSlots.length]
-    const newNode = makeNode({
+    const roleValue = normalizeRole(cells[roleIndex], slot.role)
+    const xValue = toNumber(cells[xIndex], slot.x)
+    const yValue = toNumber(cells[yIndex], slot.y)
+
+    nodes.push(makeNode({
       id: `cause-${index + 1}`,
-      x: slot.x,
-      y: slot.y,
-      label: `${TEXT.addCause} ${index + 1}`,
-      description: TEXT.addCauseDescription,
-      role: slot.role,
-      fill: '#ffe7d6',
-      stroke: '#c85018',
-    })
-
-    state.nodes.push(newNode)
-    state.causeCount += 1
-    render()
-    selectNode(newNode.id)
-    updateActionStatus(`\u6309\u9215\u5df2\u89f8\u767c\uff0c\u5df2\u65b0\u589e\uff1a${newNode.label}`)
+      x: xValue,
+      y: yValue,
+      label,
+      description: descriptionIndex >= 0 ? String(cells[descriptionIndex] || '').trim() : '',
+      role: roleValue,
+    }))
   })
 
-  nodeLabelInput.addEventListener('input', (event) => {
-    const node = getSelectedNode()
-    if (!node) {
-      return
+  if (nodes.length === 1) {
+    throw new Error('fishbones tab \u6c92\u6709\u53ef\u7528\u7684\u56e0\u679c\u8cc7\u6599')
+  }
+
+  return nodes
+}
+
+function parseCsv(text) {
+  const rows = []
+  let currentRow = ['']
+  let insideQuote = false
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index]
+    const nextChar = text[index + 1]
+
+    if (char === '"') {
+      if (insideQuote && nextChar === '"') {
+        currentRow[currentRow.length - 1] += '"'
+        index += 1
+      } else {
+        insideQuote = !insideQuote
+      }
+    } else if (char === ',' && !insideQuote) {
+      currentRow.push('')
+    } else if ((char === '\r' || char === '\n') && !insideQuote) {
+      if (char === '\r' && nextChar === '\n') {
+        index += 1
+      }
+      rows.push(currentRow.map((cell) => cell.trim()))
+      currentRow = ['']
+    } else {
+      currentRow[currentRow.length - 1] += char
     }
+  }
 
-    node.label = event.target.value || TEXT.unnamed
-    render()
-    selectNode(node.id)
-  })
+  if (currentRow.some((cell) => cell !== '')) {
+    rows.push(currentRow.map((cell) => cell.trim()))
+  }
 
-  nodeDescriptionInput.addEventListener('input', (event) => {
-    const node = getSelectedNode()
-    if (!node) {
-      return
+  return rows.filter((row) => row.some((cell) => cell !== ''))
+}
+
+function normalizeHeader(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function findHeaderIndex(headers, candidates) {
+  return headers.findIndex((header) => candidates.includes(header))
+}
+
+function firstNonEmptyValue(rows, index) {
+  if (index < 0) {
+    return ''
+  }
+
+  for (const row of rows) {
+    const value = String(row[index] || '').trim()
+    if (value) {
+      return value
     }
+  }
 
-    node.description = event.target.value
-    updateActionStatus(`\u76ee\u524d\u9078\u53d6\uff1a${node.label}`)
-  })
+  return ''
+}
 
-  graphContainer.addEventListener('pointermove', onPointerMove)
-  graphContainer.addEventListener('pointerup', stopDragging)
-  graphContainer.addEventListener('pointerleave', stopDragging)
-  graphContainer.addEventListener('click', (event) => {
-    if (event.target === graphContainer || event.target === board || event.target === svg || event.target === linesLayer) {
-      clearSelection()
-    }
-  })
+function normalizeRole(value, fallback) {
+  const normalized = String(value || '').trim().toLowerCase()
+  if (normalized === 'cause-top' || normalized === 'top' || normalized === '\u4e0a') {
+    return 'cause-top'
+  }
+  if (normalized === 'cause-bottom' || normalized === 'bottom' || normalized === '\u4e0b') {
+    return 'cause-bottom'
+  }
+  return fallback
+}
 
-  window.addEventListener('resize', render)
+function toNumber(value, fallback) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
 }
 
 function render() {

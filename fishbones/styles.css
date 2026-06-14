@@ -172,6 +172,37 @@ body {
   font-size: 1.2rem;
 }
 
+.sheet-panel {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(123, 107, 99, 0.12);
+}
+
+.sheet-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.sheet-controls button {
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sheet-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 .panel-hint {
   margin: 0 0 16px;
   color: var(--muted);
@@ -191,7 +222,8 @@ body {
 }
 
 .node-form input,
-.node-form textarea {
+.node-form textarea,
+.sheet-controls input {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -202,7 +234,8 @@ body {
 }
 
 .node-form input:focus,
-.node-form textarea:focus {
+.node-form textarea:focus,
+.sheet-controls input:focus {
   outline: 2px solid rgba(212, 106, 58, 0.2);
   border-color: var(--accent);
 }

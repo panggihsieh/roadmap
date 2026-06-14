@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>&#39770;&#39592;&#22294;&#20114;&#21205;&#32232;&#36655;&#22120;</title>
   <link rel="preconnect" href="https://unpkg.com">
-  <link rel="stylesheet" href="./styles.css?v=20260614-1">
+  <link rel="stylesheet" href="./styles.css?v=20260614-2">
 </head>
 <body>
   <div class="page">
@@ -34,6 +34,16 @@
       </section>
 
       <aside class="panel">
+        <section class="sheet-panel">
+          <h2>Google Sheet</h2>
+          <p class="panel-hint">貼上 Google Sheet 連結後，唯讀載入 `fishbones` tab 的因果資料。</p>
+          <div class="sheet-controls">
+            <input id="sheetUrlInput" type="text" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+            <button id="loadSheetButton" type="button">載入 fishbones</button>
+          </div>
+          <p id="sheetStatus" class="sheet-status">尚未載入 Google Sheet。</p>
+        </section>
+
         <h2>&#31680;&#40670;&#20839;&#23481;</h2>
         <p id="selectionHint" class="panel-hint">&#35531;&#20808;&#40670;&#36984;&#22294;&#19978;&#30340;&#31680;&#40670;&#12290;</p>
         <form id="nodeForm" class="node-form">
@@ -50,6 +60,6 @@
     </main>
   </div>
 
-  <script src="./app.js?v=20260614-1"></script>
+  <script src="./app.js?v=20260614-2"></script>
 </body>
 </html>
