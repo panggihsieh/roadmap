@@ -783,6 +783,12 @@ button,
   font-size: clamp(1.2rem, 2.1vw, 2rem);
 }
 
+.result-head strong {
+  font-size: 0.82em;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
 .rank-badge {
   min-width: 48px;
   padding: 5px 12px;
