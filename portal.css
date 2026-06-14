@@ -24,6 +24,10 @@
   /* Learning Map Accent */
   --map-gradient: linear-gradient(135deg, #14b8a6 0%, #3b82f6 100%);
   --map-border-hover: rgba(20, 184, 166, 0.4);
+
+  /* Fishbones Accent */
+  --fishbones-gradient: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+  --fishbones-border-hover: rgba(249, 115, 22, 0.4);
 }
 
 /* Base Body Styles */
@@ -143,10 +147,10 @@ h1 {
 /* Main Grid Layout */
 .portal-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 2.5rem;
   width: 100%;
-  max-width: 1000px;
+  max-width: 1320px;
   opacity: 0;
   animation: fadeInUp 0.8s 0.2s forwards ease-out;
 }
@@ -195,6 +199,11 @@ h1 {
   box-shadow: 0 0 40px rgba(20, 184, 166, 0.15), 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
+.portal-card.fishbones-card:hover {
+  border-color: var(--fishbones-border-hover);
+  box-shadow: 0 0 40px rgba(249, 115, 22, 0.15), 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
 /* Card Content Details */
 .card-icon {
   width: 64px;
@@ -218,6 +227,12 @@ h1 {
   background: rgba(20, 184, 166, 0.15);
   border: 1px solid rgba(20, 184, 166, 0.25);
   color: #2dd4bf;
+}
+
+.fishbones-card .card-icon {
+  background: rgba(249, 115, 22, 0.15);
+  border: 1px solid rgba(249, 115, 22, 0.25);
+  color: #fb923c;
 }
 
 .portal-card h2 {
@@ -283,6 +298,16 @@ h1 {
   transform: translateY(-1px);
 }
 
+.fishbones-card .btn-primary {
+  background: var(--fishbones-gradient);
+  box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+}
+
+.fishbones-card .btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+  transform: translateY(-1px);
+}
+
 /* Secondary Button Styling */
 .btn-secondary {
   background: rgba(255, 255, 255, 0.03);
@@ -304,6 +329,11 @@ h1 {
 .map-card .btn-secondary:hover {
   border-color: rgba(20, 184, 166, 0.3);
   color: #ccfbf1;
+}
+
+.fishbones-card .btn-secondary:hover {
+  border-color: rgba(249, 115, 22, 0.3);
+  color: #ffedd5;
 }
 
 /* Footer Section */
@@ -373,5 +403,11 @@ footer a:hover {
   
   .portal-card {
     padding: 2.25rem 1.75rem;
+  }
+}
+
+@media (max-width: 1100px) and (min-width: 769px) {
+  .portal-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

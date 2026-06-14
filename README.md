@@ -7,7 +7,7 @@
 - `learningmap/`
   以樹狀圖呈現的學習地圖，可讀取 Google Sheet 並輸出學生用分享頁。
 - `fishbones/`
-  以 AntV X6 製作的魚骨圖互動編輯器，可拖拉節點並編輯主題與描述。
+  魚骨圖互動編輯器第一版，可拖拉節點並編輯主題與描述。
 
 ## Structure
 
@@ -54,9 +54,9 @@ python -m http.server 8000
 
 ## Fishbones Notes
 
-- 採用 `HTML + CSS + Vanilla JavaScript + AntV X6 CDN`。
-- 魚骨圖互動方式與節點畫布技術參考 [antvis/x6](https://github.com/antvis/x6)。
-- 目前提供最精簡版本：主題節點、因果節點、拖拉調整、點選後右側編輯主題與描述。
+- 第一版魚骨圖已完成，採用 `HTML + CSS + Vanilla JavaScript` 製作獨立前端頁面。
+- 魚骨圖互動方式與節點畫布設計參考 [antvis/x6](https://github.com/antvis/x6)。
+- 目前已支援：主題節點、因果節點、節點拖拉調整、點選後右側編輯主題與描述、遠端 GitHub Pages 開啟。
 - 不含後端儲存、多人協作、匯出功能與自動排版。
 
 ## Skills Used
