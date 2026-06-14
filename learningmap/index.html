@@ -113,6 +113,49 @@
         <label for="input-supplement">補充內容說明</label>
         <textarea id="input-supplement" placeholder="可以輸入關於此學習地圖的補充說明、聯絡資訊或上課規範..." style="height: 100px;"></textarea>
       </div>
+      <section class="teacher-live-panel">
+        <div class="teacher-live-header">
+          <h3>學生舉手 / 提問</h3>
+          <button id="btn-clear-hand-raises" class="control-btn secondary-btn" type="button">清除全部</button>
+        </div>
+        <div class="teacher-live-toolbar">
+          <label class="teacher-live-filter">
+            <input id="teacher-hand-raise-recent-only" type="checkbox">
+            <span>只看最近 5 分鐘提問</span>
+          </label>
+          <label class="teacher-live-filter">
+            <input id="teacher-hand-raise-sound-enabled" type="checkbox" checked>
+            <span>新提問音效提醒</span>
+          </label>
+          <div class="teacher-live-sound-tools">
+            <button id="btn-test-hand-raise-sound" class="teacher-live-status-btn" type="button">測試音效</button>
+            <span id="teacher-hand-raise-sound-status" class="teacher-live-filter-note">尚未測試音效</span>
+          </div>
+          <div class="teacher-live-sound-tools">
+            <input id="input-hand-raise-sound-file" type="file" accept="audio/*">
+            <button id="btn-clear-hand-raise-sound-file" class="teacher-live-status-btn" type="button">清除自訂音效</button>
+            <span id="teacher-hand-raise-sound-file-name" class="teacher-live-filter-note">目前使用預設提示音</span>
+          </div>
+          <span class="teacher-live-filter-note">統計與列表會跟著篩選結果同步更新</span>
+        </div>
+        <div class="teacher-live-stats" id="teacher-hand-raise-stats">
+          <div class="teacher-live-stat">
+            <span class="teacher-live-stat-value" id="teacher-hand-raise-total">0</span>
+            <span class="teacher-live-stat-label">目前提問</span>
+          </div>
+          <div class="teacher-live-stat">
+            <span class="teacher-live-stat-value" id="teacher-hand-raise-repeat">0</span>
+            <span class="teacher-live-stat-label">請再講一次</span>
+          </div>
+          <div class="teacher-live-stat">
+            <span class="teacher-live-stat-value" id="teacher-hand-raise-stuck">0</span>
+            <span class="teacher-live-stat-label">卡住了</span>
+          </div>
+        </div>
+        <div class="teacher-live-list" id="teacher-hand-raise-list">
+          <div class="teacher-live-empty">目前還沒有學生提問。</div>
+        </div>
+      </section>
     </aside>
 
     <!-- MIDDLE PANEL: Tree Knowledge Structure -->
@@ -227,6 +270,6 @@
   </div>
 
   <!-- Javascript Logic -->
-  <script src="app.js?v=20260613-4"></script>
+  <script src="app.js?v=20260614-5"></script>
 </body>
 </html>

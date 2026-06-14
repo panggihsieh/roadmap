@@ -16,13 +16,317 @@ let appState = {
 const DEFAULT_SHEET_URL = 'https://docs.google.com/spreadsheets/d/18u82OZMeHzkY9W4lYUP2GtJADe2PlwcgQfAF4x2QAQs/edit?usp=sharing';
 const TARGET_SHEET_TAB_NAME = 'now';
 const SHEET_AUTO_REFRESH_INTERVAL_MS = 30000;
+const HAND_RAISE_STORAGE_KEY = 'learningmap-hand-raises';
+const HAND_RAISE_SOUND_DATA_KEY = 'learningmap-hand-raise-sound-data';
+const HAND_RAISE_SOUND_NAME_KEY = 'learningmap-hand-raise-sound-name';
+const HAND_RAISE_RECENT_WINDOW_MS = 5 * 60 * 1000;
+const HAND_RAISE_PRESETS = [
+  { type: 'stuck', label: '我卡住了', message: '我卡住了，想請老師協助說明。' },
+  { type: 'repeat', label: '請再講一次', message: '這段我沒有跟上，請老師再講一次。' },
+  { type: 'question', label: '我想提問', message: '我有一個問題想請教老師。' },
+  { type: 'too_fast', label: '進度太快', message: '目前進度有點快，可以稍微放慢嗎？' },
+  { type: 'too_slow', label: '進度太慢', message: '目前進度我已經跟上，可以加快一些。' },
+];
 
 let sheetAutoRefreshTimer = null;
 let isSheetAutoRefreshInFlight = false;
 let isSheetAutoRefreshEnabled = false;
+let handRaiseStorePromise = null;
+let handRaiseStoreRef = null;
+let handRaiseUnsubscribe = () => {};
+let activeHandRaiseSessionId = '';
+let handRaiseEntries = [];
+let teacherHandRaiseRecentOnly = false;
+let teacherHandRaiseSoundEnabled = true;
+let handRaiseHasHydrated = false;
+let handRaiseKnownEntryIds = new Set();
+let handRaiseAudioContext = null;
+let handRaiseAudioUnlocked = false;
+let teacherHandRaiseSoundDataUrl = '';
+let teacherHandRaiseSoundName = '';
+let teacherHandRaiseSoundAudio = null;
+
+function updateTeacherHandRaiseSoundStatus(message) {
+  const statusEl = document.getElementById('teacher-hand-raise-sound-status');
+  if (statusEl) {
+    statusEl.innerText = message;
+  }
+}
+
+function updateTeacherHandRaiseSoundFileLabel() {
+  const fileNameEl = document.getElementById('teacher-hand-raise-sound-file-name');
+  if (fileNameEl) {
+    fileNameEl.innerText = teacherHandRaiseSoundName
+      ? `目前使用: ${teacherHandRaiseSoundName}`
+      : '目前使用預設提示音';
+  }
+}
+
+function loadTeacherHandRaiseSoundPreference() {
+  try {
+    teacherHandRaiseSoundDataUrl = localStorage.getItem(HAND_RAISE_SOUND_DATA_KEY) || '';
+    teacherHandRaiseSoundName = localStorage.getItem(HAND_RAISE_SOUND_NAME_KEY) || '';
+  } catch (error) {
+    console.warn('Unable to load teacher hand raise sound preference:', error.message);
+    teacherHandRaiseSoundDataUrl = '';
+    teacherHandRaiseSoundName = '';
+  }
+  updateTeacherHandRaiseSoundFileLabel();
+}
+
+function saveTeacherHandRaiseSoundPreference(dataUrl, fileName) {
+  teacherHandRaiseSoundDataUrl = dataUrl || '';
+  teacherHandRaiseSoundName = fileName || '';
+
+  try {
+    if (teacherHandRaiseSoundDataUrl) {
+      localStorage.setItem(HAND_RAISE_SOUND_DATA_KEY, teacherHandRaiseSoundDataUrl);
+      localStorage.setItem(HAND_RAISE_SOUND_NAME_KEY, teacherHandRaiseSoundName);
+    } else {
+      localStorage.removeItem(HAND_RAISE_SOUND_DATA_KEY);
+      localStorage.removeItem(HAND_RAISE_SOUND_NAME_KEY);
+    }
+  } catch (error) {
+    console.warn('Unable to save teacher hand raise sound preference:', error.message);
+  }
+
+  teacherHandRaiseSoundAudio = null;
+  updateTeacherHandRaiseSoundFileLabel();
+}
 
 function isGoogleSheetUrl(url) {
   return typeof url === 'string' && /docs\.google\.com\/spreadsheets\/d\//.test(url);
+}
+
+function bootstrapHandRaiseUI() {
+  const clearBtn = document.getElementById('btn-clear-hand-raises');
+  const recentOnlyInput = document.getElementById('teacher-hand-raise-recent-only');
+  const soundEnabledInput = document.getElementById('teacher-hand-raise-sound-enabled');
+  const testSoundBtn = document.getElementById('btn-test-hand-raise-sound');
+  const soundFileInput = document.getElementById('input-hand-raise-sound-file');
+  const clearSoundFileBtn = document.getElementById('btn-clear-hand-raise-sound-file');
+
+  loadTeacherHandRaiseSoundPreference();
+
+  if (recentOnlyInput) {
+    recentOnlyInput.checked = teacherHandRaiseRecentOnly;
+    recentOnlyInput.addEventListener('change', () => {
+      teacherHandRaiseRecentOnly = recentOnlyInput.checked;
+      renderTeacherHandRaisePanel();
+    });
+  }
+
+  if (soundEnabledInput) {
+    soundEnabledInput.checked = teacherHandRaiseSoundEnabled;
+    soundEnabledInput.addEventListener('change', async () => {
+      teacherHandRaiseSoundEnabled = soundEnabledInput.checked;
+      if (teacherHandRaiseSoundEnabled) {
+        await unlockTeacherHandRaiseAudio();
+        updateTeacherHandRaiseSoundStatus('音效提醒已開啟');
+      } else {
+        updateTeacherHandRaiseSoundStatus('音效提醒已關閉');
+      }
+    });
+  }
+
+  if (testSoundBtn) {
+    testSoundBtn.addEventListener('click', async () => {
+      testSoundBtn.disabled = true;
+      try {
+        await unlockTeacherHandRaiseAudio();
+        const played = playTeacherHandRaiseSound();
+        updateTeacherHandRaiseSoundStatus(played ? '已播放測試音效' : '瀏覽器尚未允許播放音效');
+      } catch (error) {
+        console.error(error);
+        updateTeacherHandRaiseSoundStatus(`音效測試失敗: ${error.message}`);
+      } finally {
+        testSoundBtn.disabled = false;
+      }
+    });
+  }
+
+  if (soundFileInput) {
+    soundFileInput.addEventListener('change', async () => {
+      const [file] = Array.from(soundFileInput.files || []);
+      if (!file) return;
+
+      try {
+        const dataUrl = await readFileAsDataUrl(file);
+        saveTeacherHandRaiseSoundPreference(dataUrl, file.name);
+        await unlockTeacherHandRaiseAudio();
+        updateTeacherHandRaiseSoundStatus(`已載入自訂音效: ${file.name}`);
+      } catch (error) {
+        console.error(error);
+        updateTeacherHandRaiseSoundStatus(`載入音效失敗: ${error.message}`);
+      } finally {
+        soundFileInput.value = '';
+      }
+    });
+  }
+
+  if (clearSoundFileBtn) {
+    clearSoundFileBtn.addEventListener('click', () => {
+      saveTeacherHandRaiseSoundPreference('', '');
+      updateTeacherHandRaiseSoundStatus('已清除自訂音效，改用預設提示音');
+    });
+  }
+
+  primeHandRaiseAudioUnlock();
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', async () => {
+      if (!handRaiseStoreRef || !activeHandRaiseSessionId) return;
+      clearBtn.disabled = true;
+      try {
+        await handRaiseStoreRef.clear(activeHandRaiseSessionId);
+      } catch (error) {
+        console.error(error);
+        alert(`清除提問失敗: ${error.message}`);
+      } finally {
+        clearBtn.disabled = false;
+      }
+    });
+  }
+
+  const listEl = document.getElementById('teacher-hand-raise-list');
+  if (listEl) {
+    listEl.addEventListener('click', async (event) => {
+      const actionBtn = event.target.closest('[data-hand-raise-action]');
+      if (!actionBtn || !handRaiseStoreRef || !activeHandRaiseSessionId) return;
+
+      const { handRaiseAction, handRaiseId } = actionBtn.dataset;
+      if (!handRaiseId || (handRaiseAction !== 'pending' && handRaiseAction !== 'resolved')) return;
+
+      actionBtn.disabled = true;
+      try {
+        await handRaiseStoreRef.updateStatus(activeHandRaiseSessionId, handRaiseId, handRaiseAction);
+      } catch (error) {
+        console.error(error);
+        alert(`更新提問狀態失敗: ${error.message}`);
+      } finally {
+        actionBtn.disabled = false;
+      }
+    });
+  }
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('讀取本機音檔失敗'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function unlockTeacherHandRaiseAudio() {
+  handRaiseAudioUnlocked = true;
+  if (!(typeof window.AudioContext === 'function' || typeof window.webkitAudioContext === 'function')) {
+    updateTeacherHandRaiseSoundStatus('此瀏覽器不支援音效提醒');
+    return false;
+  }
+
+  const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+  handRaiseAudioContext = handRaiseAudioContext || new AudioContextCtor();
+  if (handRaiseAudioContext.state === 'suspended') {
+    await handRaiseAudioContext.resume();
+  }
+  updateTeacherHandRaiseSoundStatus('音效已就緒');
+  return handRaiseAudioContext.state === 'running';
+}
+
+function primeHandRaiseAudioUnlock() {
+  const unlock = async () => {
+    try {
+      if (handRaiseAudioUnlocked && handRaiseAudioContext?.state === 'running') return;
+      await unlockTeacherHandRaiseAudio();
+    } catch (error) {
+      console.warn('Unable to unlock hand raise audio:', error.message);
+    }
+  };
+
+  document.addEventListener('pointerdown', unlock, { passive: true });
+  document.addEventListener('keydown', unlock);
+}
+
+function playTeacherHandRaiseSound() {
+  if (!teacherHandRaiseSoundEnabled || appState.currentMode !== 'teacher') return;
+  if (!handRaiseAudioUnlocked) return;
+
+  try {
+    if (teacherHandRaiseSoundDataUrl) {
+      teacherHandRaiseSoundAudio = teacherHandRaiseSoundAudio || new Audio(teacherHandRaiseSoundDataUrl);
+      teacherHandRaiseSoundAudio.currentTime = 0;
+      teacherHandRaiseSoundAudio.play().catch((error) => {
+        console.warn('Unable to play custom hand raise audio:', error.message);
+      });
+      updateTeacherHandRaiseSoundStatus(teacherHandRaiseSoundName
+        ? `已播放自訂音效: ${teacherHandRaiseSoundName}`
+        : '已播放自訂音效');
+      return true;
+    }
+
+    if (!handRaiseAudioContext) {
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextCtor) return;
+      handRaiseAudioContext = new AudioContextCtor();
+    }
+
+    const now = handRaiseAudioContext.currentTime;
+    const oscillator = handRaiseAudioContext.createOscillator();
+    const gainNode = handRaiseAudioContext.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, now);
+    oscillator.frequency.exponentialRampToValueAtTime(660, now + 0.18);
+    gainNode.gain.setValueAtTime(0.0001, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.08, now + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(handRaiseAudioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.24);
+    updateTeacherHandRaiseSoundStatus('新提問音效已播放');
+    return true;
+  } catch (error) {
+    console.warn('Unable to play hand raise audio:', error.message);
+    updateTeacherHandRaiseSoundStatus('音效播放失敗，請先按「測試音效」');
+  }
+
+  return false;
+}
+
+function syncTeacherHandRaiseAlerts(entries) {
+  const nextIds = new Set(entries.map((entry) => entry.id).filter(Boolean));
+
+  if (!handRaiseHasHydrated) {
+    handRaiseKnownEntryIds = nextIds;
+    handRaiseHasHydrated = true;
+    return;
+  }
+
+  const hasNewEntry = entries.some((entry) => entry.id && !handRaiseKnownEntryIds.has(entry.id));
+  handRaiseKnownEntryIds = nextIds;
+
+  if (hasNewEntry) {
+    playTeacherHandRaiseSound();
+  }
+}
+
+function hashString(value) {
+  let hash = 0;
+  const input = String(value || '');
+  for (let i = 0; i < input.length; i += 1) {
+    hash = ((hash << 5) - hash) + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+function getHandRaiseSessionId() {
+  if (!isGoogleSheetUrl(appState.sheetUrl)) return '';
+  return `sheet-${hashString(appState.sheetUrl)}`;
 }
 
 // Initialize Application
@@ -72,7 +376,148 @@ window.addEventListener('DOMContentLoaded', () => {
       refreshSheetDataIfNeeded();
     }
   });
+
+  bootstrapHandRaiseUI();
 });
+
+async function getHandRaiseStore() {
+  if (handRaiseStorePromise) return handRaiseStorePromise;
+
+  handRaiseStorePromise = createHandRaiseStore().catch((error) => {
+    console.warn('Falling back to local hand raise store:', error.message);
+    return createLocalHandRaiseStore();
+  });
+
+  return handRaiseStorePromise;
+}
+
+async function createHandRaiseStore() {
+  const { firebaseConfig } = await import('../vote/firebase-config.js');
+  if (!firebaseConfig?.apiKey || !firebaseConfig?.projectId) {
+    throw new Error('Firebase config missing');
+  }
+
+  const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js');
+  const {
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDocs,
+    getFirestore,
+    onSnapshot,
+    serverTimestamp,
+    updateDoc,
+  } = await import('https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js');
+
+  const firebaseApp = getApps().find((app) => app.name === 'learningmap-handraise')
+    || initializeApp(firebaseConfig, 'learningmap-handraise');
+  const db = getFirestore(firebaseApp);
+
+  return {
+    subscribe(sessionId, callback) {
+      const ref = collection(db, 'learningmap_sessions', sessionId, 'hand_raises');
+      return onSnapshot(ref, (snapshot) => {
+        const entries = snapshot.docs.map((item) => {
+          const data = item.data();
+          return {
+            id: item.id,
+            ...data,
+            createdAtMs: data.createdAt?.toMillis ? data.createdAt.toMillis() : 0,
+          };
+        }).sort((a, b) => b.createdAtMs - a.createdAtMs);
+        callback(entries);
+      });
+    },
+    async submit(sessionId, payload) {
+      const ref = collection(db, 'learningmap_sessions', sessionId, 'hand_raises');
+      await addDoc(ref, {
+        ...payload,
+        createdAt: serverTimestamp(),
+      });
+    },
+    async updateStatus(sessionId, entryId, status) {
+      const ref = doc(db, 'learningmap_sessions', sessionId, 'hand_raises', entryId);
+      await updateDoc(ref, { status });
+    },
+    async clear(sessionId) {
+      const ref = collection(db, 'learningmap_sessions', sessionId, 'hand_raises');
+      const snapshot = await getDocs(ref);
+      await Promise.all(snapshot.docs.map((item) => deleteDoc(doc(db, 'learningmap_sessions', sessionId, 'hand_raises', item.id))));
+    },
+  };
+}
+
+function createLocalHandRaiseStore() {
+  const listeners = new Set();
+
+  function readStore() {
+    try {
+      return JSON.parse(localStorage.getItem(HAND_RAISE_STORAGE_KEY) || '{}');
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function writeStore(data) {
+    localStorage.setItem(HAND_RAISE_STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function emit(sessionId) {
+    const data = readStore();
+    const entries = [...(data[sessionId] || [])].sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
+    listeners.forEach((listener) => listener(sessionId, entries));
+  }
+
+  window.addEventListener('storage', () => {
+    listeners.forEach((listener) => listener(null, null));
+  });
+
+  return {
+    subscribe(sessionId, callback) {
+      const listener = (changedSessionId, entries) => {
+        if (changedSessionId && changedSessionId !== sessionId) return;
+        if (entries) {
+          callback(entries);
+          return;
+        }
+        const data = readStore();
+        callback([...(data[sessionId] || [])].sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0)));
+      };
+
+      listeners.add(listener);
+      listener(sessionId, null);
+      return () => listeners.delete(listener);
+    },
+    async submit(sessionId, payload) {
+      const data = readStore();
+      const current = data[sessionId] || [];
+      current.push({
+        id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        ...payload,
+        createdAtMs: Date.now(),
+      });
+      data[sessionId] = current;
+      writeStore(data);
+      emit(sessionId);
+    },
+    async updateStatus(sessionId, entryId, status) {
+      const data = readStore();
+      const current = data[sessionId] || [];
+      data[sessionId] = current.map((entry) => (
+        entry.id === entryId ? { ...entry, status } : entry
+      ));
+      writeStore(data);
+      emit(sessionId);
+    },
+    async clear(sessionId) {
+      const data = readStore();
+      data[sessionId] = [];
+      writeStore(data);
+      emit(sessionId);
+    },
+  };
+}
 
 // Load state from local storage
 function loadStateFromLocalStorage() {
@@ -231,6 +676,7 @@ function switchMode(mode) {
   
   // Close dropdown if open
   document.getElementById('pdf-dropdown-menu').classList.add('hidden');
+  renderTeacherHandRaisePanel();
 }
 
 // Convert Google Sheet edit URL to raw CSV export URL
@@ -268,6 +714,16 @@ function stopSheetAutoRefresh() {
     clearInterval(sheetAutoRefreshTimer);
     sheetAutoRefreshTimer = null;
   }
+}
+
+function clearHandRaiseSubscription() {
+  handRaiseUnsubscribe();
+  handRaiseUnsubscribe = () => {};
+  activeHandRaiseSessionId = '';
+  handRaiseEntries = [];
+  handRaiseHasHydrated = false;
+  handRaiseKnownEntryIds = new Set();
+  renderTeacherHandRaisePanel();
 }
 
 function startSheetAutoRefresh() {
@@ -351,6 +807,165 @@ function refreshSheetDataIfNeeded() {
     .finally(() => {
       isSheetAutoRefreshInFlight = false;
     });
+}
+
+async function ensureHandRaiseSubscription() {
+  const sessionId = getHandRaiseSessionId();
+  if (!sessionId) {
+    handRaiseUnsubscribe();
+    handRaiseUnsubscribe = () => {};
+    activeHandRaiseSessionId = '';
+    handRaiseEntries = [];
+    handRaiseHasHydrated = false;
+    handRaiseKnownEntryIds = new Set();
+    renderTeacherHandRaisePanel();
+    return;
+  }
+
+  if (activeHandRaiseSessionId === sessionId && handRaiseStoreRef) return;
+
+  handRaiseUnsubscribe();
+  handRaiseUnsubscribe = () => {};
+  activeHandRaiseSessionId = sessionId;
+  handRaiseHasHydrated = false;
+  handRaiseKnownEntryIds = new Set();
+  handRaiseStoreRef = await getHandRaiseStore();
+  handRaiseUnsubscribe = handRaiseStoreRef.subscribe(sessionId, (entries) => {
+    syncTeacherHandRaiseAlerts(entries);
+    handRaiseEntries = entries;
+    renderTeacherHandRaisePanel();
+  });
+}
+
+function formatHandRaiseTime(entry) {
+  const timestamp = entry.createdAtMs || Date.now();
+  return new Date(timestamp).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+}
+
+function getFilteredHandRaiseEntries() {
+  if (!teacherHandRaiseRecentOnly) return handRaiseEntries;
+  const cutoff = Date.now() - HAND_RAISE_RECENT_WINDOW_MS;
+  return handRaiseEntries.filter((entry) => (entry.createdAtMs || 0) >= cutoff);
+}
+
+function renderTeacherHandRaisePanel() {
+  const totalEl = document.getElementById('teacher-hand-raise-total');
+  const repeatEl = document.getElementById('teacher-hand-raise-repeat');
+  const stuckEl = document.getElementById('teacher-hand-raise-stuck');
+  const listEl = document.getElementById('teacher-hand-raise-list');
+
+  if (!totalEl || !repeatEl || !stuckEl || !listEl) return;
+
+  const filteredEntries = getFilteredHandRaiseEntries();
+
+  totalEl.innerText = String(filteredEntries.length);
+  repeatEl.innerText = String(filteredEntries.filter((item) => item.type === 'repeat').length);
+  stuckEl.innerText = String(filteredEntries.filter((item) => item.type === 'stuck').length);
+
+  if (filteredEntries.length === 0) {
+    listEl.innerHTML = teacherHandRaiseRecentOnly
+      ? '<div class="teacher-live-empty">最近 5 分鐘內沒有新的學生提問。</div>'
+      : '<div class="teacher-live-empty">目前還沒有學生提問。</div>';
+    return;
+  }
+
+  listEl.innerHTML = filteredEntries.slice(0, 20).map((entry) => `
+    <article class="teacher-live-item">
+      <div class="teacher-live-item-header">
+        <span class="teacher-live-type">${entry.label || entry.type || '提問'}</span>
+        <span class="teacher-live-time">${formatHandRaiseTime(entry)}</span>
+      </div>
+      <div class="teacher-live-item-topic"><strong>主題：</strong>${entry.topicName || '未指定主題'}</div>
+      <div class="teacher-live-item-message"><strong>內容：</strong>${entry.message || '無補充內容'}</div>
+      <div class="teacher-live-item-footer">
+        <span class="teacher-live-status ${entry.status === 'resolved' ? 'resolved' : 'pending'}">${entry.status === 'resolved' ? '已處理' : '待處理'}</span>
+        <div class="teacher-live-status-actions">
+          <button class="teacher-live-status-btn" type="button" data-hand-raise-id="${entry.id}" data-hand-raise-action="pending">標為待處理</button>
+          <button class="teacher-live-status-btn" type="button" data-hand-raise-id="${entry.id}" data-hand-raise-action="resolved">標為已處理</button>
+        </div>
+      </div>
+    </article>
+  `).join('');
+}
+
+function getHandRaisePanelMarkup(item) {
+  const topicName = item?.name || '目前課程內容';
+  const chips = HAND_RAISE_PRESETS.map((preset) => `
+    <button class="hand-raise-chip" type="button" data-hand-raise-type="${preset.type}" data-hand-raise-label="${preset.label}" data-hand-raise-message="${preset.message}">
+      ${preset.label}
+    </button>
+  `).join('');
+
+  return `
+    <section class="detail-section hand-raise-panel">
+      <h4>舉手 / 提問</h4>
+      <p>若你在「${topicName}」這段內容有疑問，可以快速舉手提醒老師，教師端會即時看到統計與提問內容。</p>
+      <div class="hand-raise-quick-actions">${chips}</div>
+      <textarea id="hand-raise-message" class="hand-raise-textarea" placeholder="也可以補充你卡住的地方、想再聽一次的重點，或你想問老師的問題。"></textarea>
+      <div class="hand-raise-footer">
+        <span id="hand-raise-status" class="hand-raise-status">送出後老師端會即時收到。</span>
+        <button id="btn-submit-hand-raise" class="action-btn" type="button">送出提問</button>
+      </div>
+    </section>
+  `;
+}
+
+function wireHandRaiseComposer(item) {
+  const submitBtn = document.getElementById('btn-submit-hand-raise');
+  const textarea = document.getElementById('hand-raise-message');
+  const statusEl = document.getElementById('hand-raise-status');
+  const chips = Array.from(document.querySelectorAll('[data-hand-raise-type]'));
+
+  if (!submitBtn || !textarea || !statusEl) return;
+
+  let selectedPreset = null;
+
+  chips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      selectedPreset = {
+        type: chip.dataset.handRaiseType,
+        label: chip.dataset.handRaiseLabel,
+        message: chip.dataset.handRaiseMessage,
+      };
+      textarea.value = selectedPreset.message || '';
+      statusEl.innerText = `已選擇「${selectedPreset.label}」，可再補充文字。`;
+    });
+  });
+
+  submitBtn.addEventListener('click', async () => {
+    const message = textarea.value.trim();
+    if (!message && !selectedPreset) {
+      statusEl.innerText = '請先選擇一個快速提問或輸入問題內容。';
+      return;
+    }
+
+    try {
+      await ensureHandRaiseSubscription();
+      if (!handRaiseStoreRef || !activeHandRaiseSessionId) {
+        throw new Error('目前尚未連線到提問通道');
+      }
+
+      const payload = {
+        type: selectedPreset?.type || 'question',
+        label: selectedPreset?.label || '自由提問',
+        message: message || selectedPreset?.message || '',
+        topicName: item?.name || appState.workshopTitle,
+        topicRank: item?.rank || null,
+        status: 'pending',
+      };
+
+      submitBtn.disabled = true;
+      await handRaiseStoreRef.submit(activeHandRaiseSessionId, payload);
+      textarea.value = '';
+      selectedPreset = null;
+      statusEl.innerText = '已送出，老師端會即時看到你的提問。';
+    } catch (error) {
+      console.error(error);
+      statusEl.innerText = `送出失敗：${error.message}`;
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
 }
 
 // Fetch CSV data from Google Sheet and only use the worksheet tab named "now"
@@ -440,6 +1055,7 @@ function fetchSheetData(url, targetGid = null) {
       renderSheetTabsUI();
       applySheetCsv(csvText);
       startSheetAutoRefresh();
+      ensureHandRaiseSubscription();
     })
     .catch(error => {
       console.error(error);
@@ -1051,6 +1667,7 @@ function showItemDetail(item) {
         </div>
         <h3>請點選左側目錄中的學習物件</h3>
         <p>點選後在此處將會顯示詳細下載連結與學習描述說明。</p>
+        ${getHandRaisePanelMarkup(null)}
         <div id="right-sheet-tabs-container" style="display: none; margin-top: 24px; padding-top: 20px; border-top: 1px dashed rgba(255, 255, 255, 0.15); width: 100%;">
           <h4 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--text-color); font-weight: 500; text-align: center;">
             工作表分頁快速切換
@@ -1063,6 +1680,7 @@ function showItemDetail(item) {
     `;
     setTimeout(() => {
       renderSheetTabsUI();
+      wireHandRaiseComposer(null);
     }, 0);
     return;
   }
@@ -1097,8 +1715,10 @@ function showItemDetail(item) {
           </div>
         </div>
       ` : ''}
+      ${getHandRaisePanelMarkup(item)}
     </div>
   `;
+  wireHandRaiseComposer(item);
 }
 
 // Update Supplementary Section display
@@ -1238,6 +1858,7 @@ function loadSampleCSV() {
   appState.sheetTabs = [];
   appState.activeGid = '0';
   stopSheetAutoRefresh();
+  clearHandRaiseSubscription();
   appState.rawCSV = sampleCSV;
   const csvRawInput = document.getElementById('input-csv-raw');
   if (csvRawInput) csvRawInput.value = sampleCSV;
@@ -1255,6 +1876,7 @@ function parseRawCSV() {
   appState.sheetTabs = [];
   appState.activeGid = '0';
   stopSheetAutoRefresh();
+  clearHandRaiseSubscription();
   appState.rawCSV = csvText;
   saveStateToLocalStorage();
   parseAndRender(csvText);
@@ -1271,6 +1893,7 @@ function handleFileSelect(event) {
     appState.sheetTabs = [];
     appState.activeGid = '0';
     stopSheetAutoRefresh();
+    clearHandRaiseSubscription();
     appState.rawCSV = csvText;
     const csvRawInput = document.getElementById('input-csv-raw');
     if (csvRawInput) csvRawInput.value = csvText;
