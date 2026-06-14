@@ -322,6 +322,13 @@ button,
   margin: 0 auto;
 }
 
+.vote-panel h2 {
+  margin: 0;
+  font-size: clamp(1.55rem, 2.2vw, 2.15rem);
+  line-height: 1.2;
+  font-weight: 700;
+}
+
 .option-list {
   display: grid;
   gap: 12px;
@@ -388,7 +395,7 @@ button,
 
 .option-text {
   min-width: 0;
-  font-size: clamp(1.55rem, 2.2vw, 2.15rem);
+  font-size: inherit;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.01em;
