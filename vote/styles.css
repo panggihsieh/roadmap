@@ -318,13 +318,14 @@ button,
 }
 
 .vote-panel {
+  --vote-primary-text-size: clamp(1.55rem, 2.2vw, 2.15rem);
   max-width: 720px;
   margin: 0 auto;
 }
 
 .vote-panel h2 {
   margin: 0;
-  font-size: clamp(1.55rem, 2.2vw, 2.15rem);
+  font-size: var(--vote-primary-text-size);
   line-height: 1.2;
   font-weight: 700;
 }
@@ -346,6 +347,7 @@ button,
   min-height: 84px;
   padding: 20px 28px;
   color: #e5e7eb;
+  font-size: var(--vote-primary-text-size);
   text-align: left;
   background: rgba(255, 255, 255, 0.02);
   border-color: var(--line);
@@ -395,7 +397,7 @@ button,
 
 .option-text {
   min-width: 0;
-  font-size: inherit;
+  font-size: 1em;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.01em;
