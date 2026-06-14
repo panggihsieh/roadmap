@@ -648,6 +648,13 @@ function checkURLParameters() {
     return true;
   }
 
+  if (viewParam === 'teacher') {
+    appState.isLocked = false;
+    appState.currentMode = 'teacher';
+    switchMode('teacher');
+    return false;
+  }
+
   // 2. Legacy backend testing parameters
   const modeParam = urlParams.get('mode');
   if (modeParam === 'student' || modeParam === 'teacher') {

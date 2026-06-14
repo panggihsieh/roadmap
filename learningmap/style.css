@@ -276,6 +276,14 @@ body.mode-teacher .main-container {
   grid-template-columns: 340px 1fr 380px;
 }
 
+body.mode-teacher {
+  overflow-y: auto;
+}
+
+body.mode-teacher .main-container {
+  align-items: start;
+}
+
 body.mode-student .main-container {
   grid-template-columns: 1fr 420px;
 }
@@ -342,6 +350,8 @@ body.mode-teacher #panel-teacher {
   gap: 16px;
   display: flex;
   flex-direction: column;
+  max-height: calc(100vh - 125px);
+  min-height: 0;
 }
 
 .form-group {
