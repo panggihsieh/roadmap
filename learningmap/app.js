@@ -188,25 +188,32 @@ function bootstrapHandRaiseUI() {
     });
   }
 
+  const handleStatusAction = async (event) => {
+    const actionBtn = event.target.closest('[data-hand-raise-action]');
+    if (!actionBtn || !handRaiseStoreRef || !activeHandRaiseSessionId) return;
+
+    const { handRaiseAction, handRaiseId } = actionBtn.dataset;
+    if (!handRaiseId || (handRaiseAction !== 'pending' && handRaiseAction !== 'resolved')) return;
+
+    actionBtn.disabled = true;
+    try {
+      await handRaiseStoreRef.updateStatus(activeHandRaiseSessionId, handRaiseId, handRaiseAction);
+    } catch (error) {
+      console.error(error);
+      alert(`????????: ${error.message}`);
+    } finally {
+      actionBtn.disabled = false;
+    }
+  };
+
   const listEl = document.getElementById('teacher-hand-raise-list');
   if (listEl) {
-    listEl.addEventListener('click', async (event) => {
-      const actionBtn = event.target.closest('[data-hand-raise-action]');
-      if (!actionBtn || !handRaiseStoreRef || !activeHandRaiseSessionId) return;
+    listEl.addEventListener('click', handleStatusAction);
+  }
 
-      const { handRaiseAction, handRaiseId } = actionBtn.dataset;
-      if (!handRaiseId || (handRaiseAction !== 'pending' && handRaiseAction !== 'resolved')) return;
-
-      actionBtn.disabled = true;
-      try {
-        await handRaiseStoreRef.updateStatus(activeHandRaiseSessionId, handRaiseId, handRaiseAction);
-      } catch (error) {
-        console.error(error);
-        alert(`更新提問狀態失敗: ${error.message}`);
-      } finally {
-        actionBtn.disabled = false;
-      }
-    });
+  const detailContainer = document.getElementById('detail-container');
+  if (detailContainer) {
+    detailContainer.addEventListener('click', handleStatusAction);
   }
 }
 
@@ -867,30 +874,35 @@ function formatHandRaiseTime(entry) {
 }
 
 function getFilteredHandRaiseEntries() {
-  if (!teacherHandRaiseRecentOnly) return handRaiseEntries;
+  let entries = handRaiseEntries;
+  if (appState.currentMode === 'teacher') {
+    entries = entries.filter((entry) => entry.status !== 'resolved');
+  }
+  if (!teacherHandRaiseRecentOnly || appState.currentMode !== 'teacher') return entries;
   const cutoff = Date.now() - HAND_RAISE_RECENT_WINDOW_MS;
-  return handRaiseEntries.filter((entry) => (entry.createdAtMs || 0) >= cutoff);
+  return entries.filter((entry) => (entry.createdAtMs || 0) >= cutoff);
 }
 
-function getTeacherHandRaiseListMarkup(filteredEntries, emptyMessage) {
+function getTeacherHandRaiseListMarkup(filteredEntries, emptyMessage, mode = 'teacher') {
+  const isTeacher = mode === 'teacher';
   if (filteredEntries.length === 0) {
     return `<div class="teacher-live-empty">${emptyMessage}</div>`;
   }
 
   return filteredEntries.slice(0, 20).map((entry) => `
-    <article class="teacher-live-item">
+    <article class="teacher-live-item ${isTeacher ? 'teacher-live-item-compact' : 'teacher-live-item student-readonly-item'}">
       <div class="teacher-live-item-header">
-        <span class="teacher-live-type">${entry.label || entry.type || '提問'}</span>
+        <span class="teacher-live-type">${entry.status === 'resolved' ? '已處理' : '待處理'}</span>
         <span class="teacher-live-time">${formatHandRaiseTime(entry)}</span>
       </div>
-      <div class="teacher-live-item-topic"><strong>主題：</strong>${entry.topicName || '未指定主題'}</div>
-      <div class="teacher-live-item-message"><strong>內容：</strong>${entry.message || '無補充內容'}</div>
+      <div class="teacher-live-item-message teacher-live-item-message-compact">${entry.message || '無訊息內容'}</div>
       <div class="teacher-live-item-footer">
         <span class="teacher-live-status ${entry.status === 'resolved' ? 'resolved' : 'pending'}">${entry.status === 'resolved' ? '已處理' : '待處理'}</span>
+        ${isTeacher ? `
         <div class="teacher-live-status-actions">
           <button class="teacher-live-status-btn" type="button" data-hand-raise-id="${entry.id}" data-hand-raise-action="pending">標為待處理</button>
           <button class="teacher-live-status-btn" type="button" data-hand-raise-id="${entry.id}" data-hand-raise-action="resolved">標為已處理</button>
-        </div>
+        </div>` : ''}
       </div>
     </article>
   `).join('');
@@ -902,16 +914,18 @@ function renderTeacherHandRaisePanel() {
   const stuckEl = document.getElementById('teacher-hand-raise-stuck');
   const listEl = document.getElementById('teacher-hand-raise-list');
   const detailListEl = document.getElementById('teacher-hand-raise-detail-list');
+  const studentDetailListEl = document.getElementById('student-hand-raise-detail-list');
   const filteredEntries = getFilteredHandRaiseEntries();
-  const emptyMessage = teacherHandRaiseRecentOnly
+  const emptyMessage = teacherHandRaiseRecentOnly && appState.currentMode === 'teacher'
     ? '最近 5 分鐘內沒有新的學生提問。'
     : '目前還沒有學生提問。';
 
   if (totalEl) totalEl.innerText = String(filteredEntries.length);
   if (repeatEl) repeatEl.innerText = String(filteredEntries.filter((item) => item.type === 'repeat').length);
   if (stuckEl) stuckEl.innerText = String(filteredEntries.filter((item) => item.type === 'stuck').length);
-  if (listEl) listEl.innerHTML = getTeacherHandRaiseListMarkup(filteredEntries, emptyMessage);
-  if (detailListEl) detailListEl.innerHTML = getTeacherHandRaiseListMarkup(filteredEntries, emptyMessage);
+  if (listEl) listEl.innerHTML = getTeacherHandRaiseListMarkup(filteredEntries, emptyMessage, 'teacher');
+  if (detailListEl) detailListEl.innerHTML = getTeacherHandRaiseListMarkup(filteredEntries, emptyMessage, 'teacher');
+  if (studentDetailListEl) studentDetailListEl.innerHTML = getTeacherHandRaiseListMarkup(handRaiseEntries, '目前還沒有學生提問結果。', 'student');
 }
 
 function getTeacherHandRaiseDetailMarkup() {
@@ -926,8 +940,20 @@ function getTeacherHandRaiseDetailMarkup() {
   `;
 }
 
+function getStudentHandRaiseDetailMarkup() {
+  if (appState.currentMode !== 'student') return '';
+  return `
+    <section class="detail-section teacher-hand-raise-detail-panel">
+      <h4>學生提問結果</h4>
+      <div class="student-hand-raise-readonly-note">學生端只能查看提問結果，不能修改處理狀態。</div>
+      <div id="student-hand-raise-detail-list" class="teacher-live-list">
+        <div class="teacher-live-empty">目前還沒有學生提問結果。</div>
+      </div>
+    </section>
+  `;
+}
+
 function getHandRaisePanelMarkup(item) {
-  const topicName = item?.name || '目前課程內容';
   const chips = HAND_RAISE_PRESETS.map((preset) => `
     <button class="hand-raise-chip" type="button" data-hand-raise-type="${preset.type}" data-hand-raise-label="${preset.label}" data-hand-raise-message="${preset.message}">
       ${preset.label}
@@ -937,9 +963,9 @@ function getHandRaisePanelMarkup(item) {
   return `
     <section class="detail-section hand-raise-panel">
       <h4>舉手 / 提問</h4>
-      <p>若你在「${topicName}」這段內容有疑問，可以快速舉手提醒老師，教師端會即時看到統計與提問內容。</p>
+      <p>學生只需要輸入想說的文字內容，送出後老師端會即時看到。</p>
       <div class="hand-raise-quick-actions">${chips}</div>
-      <textarea id="hand-raise-message" class="hand-raise-textarea" placeholder="也可以補充你卡住的地方、想再聽一次的重點，或你想問老師的問題。"></textarea>
+      <textarea id="hand-raise-message" class="hand-raise-textarea" placeholder="請直接輸入學生想提問的文字內容。"></textarea>
       <div class="hand-raise-footer">
         <span id="hand-raise-status" class="hand-raise-status">送出後老師端會即時收到。</span>
         <button id="btn-submit-hand-raise" class="action-btn" type="button">送出提問</button>
@@ -966,29 +992,27 @@ function wireHandRaiseComposer(item) {
         message: chip.dataset.handRaiseMessage,
       };
       textarea.value = selectedPreset.message || '';
-      statusEl.innerText = `已選擇「${selectedPreset.label}」，可再補充文字。`;
+      statusEl.innerText = `已帶入「${selectedPreset.label}」，可直接送出或自行修改文字。`;
     });
   });
 
   submitBtn.addEventListener('click', async () => {
     const message = textarea.value.trim();
     if (!message && !selectedPreset) {
-      statusEl.innerText = '請先選擇一個快速提問或輸入問題內容。';
+      statusEl.innerText = '請先輸入想提問的文字內容。';
       return;
     }
 
     try {
       await ensureHandRaiseSubscription();
       if (!handRaiseStoreRef || !activeHandRaiseSessionId) {
-        throw new Error('目前尚未連線到提問通道');
+        throw new Error('尚未連線到提問資料');
       }
 
       const payload = {
         type: selectedPreset?.type || 'question',
         label: selectedPreset?.label || '自由提問',
         message: message || selectedPreset?.message || '',
-        topicName: item?.name || appState.workshopTitle,
-        topicRank: item?.rank || null,
         status: 'pending',
       };
 
@@ -996,7 +1020,7 @@ function wireHandRaiseComposer(item) {
       await handRaiseStoreRef.submit(activeHandRaiseSessionId, payload);
       textarea.value = '';
       selectedPreset = null;
-      statusEl.innerText = '已送出，老師端會即時看到你的提問。';
+      statusEl.innerText = '已送出，老師端會即時看到。';
     } catch (error) {
       console.error(error);
       statusEl.innerText = `送出失敗：${error.message}`;
@@ -1705,7 +1729,7 @@ function showItemDetail(item) {
         </div>
         <h3>請點選左側目錄中的學習物件</h3>
         <p>點選後在此處將會顯示詳細下載連結與學習描述說明。</p>
-        ${getTeacherHandRaiseDetailMarkup()}
+        ${getTeacherHandRaiseDetailMarkup()}${getStudentHandRaiseDetailMarkup()}
         ${getHandRaisePanelMarkup(null)}
         <div id="right-sheet-tabs-container" style="display: none; margin-top: 24px; padding-top: 20px; border-top: 1px dashed rgba(255, 255, 255, 0.15); width: 100%;">
           <h4 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--text-color); font-weight: 500; text-align: center;">
@@ -1755,7 +1779,7 @@ function showItemDetail(item) {
           </div>
         </div>
       ` : ''}
-      ${getTeacherHandRaiseDetailMarkup()}
+      ${getTeacherHandRaiseDetailMarkup()}${getStudentHandRaiseDetailMarkup()}
       ${getHandRaisePanelMarkup(item)}
     </div>
   `;

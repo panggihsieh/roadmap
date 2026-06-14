@@ -936,6 +936,18 @@ body.mode-teacher #panel-teacher {
   color: var(--text-muted);
 }
 
+.teacher-live-item-compact {
+  gap: 5px;
+  padding: 10px;
+}
+
+.teacher-live-item-message-compact {
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: #d1d5db;
+  word-break: break-word;
+}
+
 .teacher-live-item-topic,
 .teacher-live-item-message {
   font-size: 0.84rem;
@@ -981,6 +993,16 @@ body.mode-teacher #panel-teacher {
 .teacher-live-status-actions {
   display: flex;
   gap: 8px;
+}
+
+.student-readonly-item .teacher-live-item-footer {
+  justify-content: flex-start;
+}
+
+.student-hand-raise-readonly-note {
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--text-muted);
 }
 
 .teacher-live-status-btn {
