@@ -2211,11 +2211,18 @@ function generateShareLink() {
   return `${baseUrl}?${params.toString()}`;
 }
 
+function openStudentPage() {
+  window.location.href = generateShareLink();
+}
+
 // Update the readonly link input inside the teacher panel
 function updateShareLinkInput() {
   const shareInput = document.getElementById('input-share-url');
+  const studentLink = document.getElementById('link-open-student');
   if (shareInput) {
-    shareInput.value = generateShareLink();
+    const shareUrl = generateShareLink();
+    shareInput.value = shareUrl;
+    if (studentLink) studentLink.href = shareUrl;
   }
 }
 

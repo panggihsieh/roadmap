@@ -411,6 +411,8 @@ body.mode-teacher #panel-teacher {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .control-btn:hover {

@@ -26,7 +26,7 @@
     <div class="header-right no-print">
       <!-- Mode Selection Controls -->
       <div class="toggle-container">
-        <button id="btn-mode-student" class="toggle-btn active" onclick="switchMode('student')">
+        <button id="btn-mode-student" class="toggle-btn active" onclick="openStudentPage()">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20M4 19.5V3a1 1 0 0 1 1-1h15a1 1 0 0 1 1 1v19a1 1 0 0 1-1 1H6.5a2.5 2.5 0 0 1-2.5-2.5z"/></svg>
           學生網頁
         </button>
@@ -105,6 +105,7 @@
         <div class="input-with-button">
           <input type="text" id="input-share-url" readonly onclick="this.select()" placeholder="產生中...">
           <button id="btn-copy-share" class="control-btn" onclick="copyShareLink()">複製連結</button>
+          <a id="link-open-student" class="control-btn" href="./student/" target="_blank" rel="noopener noreferrer">開啟學生頁</a>
         </div>
         <small class="tip-text" style="color: var(--success-color);">將此連結提供給學生，他們將只能看到學生頁面，並自動隱藏教師後台入口。</small>
       </div>
