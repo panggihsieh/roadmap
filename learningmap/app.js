@@ -606,6 +606,11 @@ function initDOMBindings() {
     shareGroup.style.display = 'none';
   }
 
+  const teacherHandRaisePanel = document.querySelector('.teacher-live-panel');
+  if (teacherHandRaisePanel) {
+    teacherHandRaisePanel.style.display = 'none';
+  }
+
   // Header Title
   const headerTitle = document.getElementById('header-workshop-title');
   if (headerTitle) headerTitle.innerText = appState.workshopTitle;
@@ -1137,6 +1142,10 @@ function getStudentHandRaiseDetailMarkup() {
       </div>
     </section>
   `;
+}
+
+function getTeacherHandRaiseDetailMarkup() {
+  return '';
 }
 
 function getHandRaisePanelMarkup(item) {
@@ -1987,8 +1996,6 @@ function showItemDetail(item) {
 
   container.innerHTML = `
     <div class="detail-card">
-      ${getHandRaisePanelMarkup(item)}
-      ${getSupplementaryDetailMarkup()}
       <div class="detail-header-section">
         <span class="detail-category-path">${item.categoryPath.replace(/\//g, ' › ')}</span>
         <h3 class="detail-title">${item.name}</h3>
@@ -2017,6 +2024,8 @@ function showItemDetail(item) {
           </div>
         </div>
       ` : ''}
+      ${getSupplementaryDetailMarkup()}
+      ${getHandRaisePanelMarkup(item)}
       ${getTeacherHandRaiseDetailMarkup()}${getStudentHandRaiseDetailMarkup()}
     </div>
   `;
