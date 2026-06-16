@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>&#39770;&#39592;&#22294;&#20114;&#21205;&#32232;&#36655;&#22120;</title>
   <link rel="preconnect" href="https://unpkg.com">
-  <link rel="stylesheet" href="./styles.css?v=20260614-2">
+  <link rel="stylesheet" href="./styles.css?v=20260616-1">
 </head>
 <body>
   <div class="page">
@@ -23,6 +23,7 @@
       <section class="board-card">
         <div class="board-toolbar">
           <button id="addCauseButton" type="button">&#26032;&#22686;&#22240;&#26524;&#31680;&#40670;</button>
+          <button id="removeNodeButton" type="button" disabled>&#31227;&#38500;&#31680;&#40670;</button>
           <span id="selectionBadge" class="selection-badge">
             &#25302;&#25289;&#31680;&#40670;&#35519;&#25972;&#20301;&#32622;&#65292;&#40670;&#36984;&#31680;&#40670;&#32232;&#36655;&#20839;&#23481;
           </span>
@@ -40,6 +41,7 @@
           <div class="sheet-controls">
             <input id="sheetUrlInput" type="text" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
             <button id="loadSheetButton" type="button">載入 fishbones</button>
+            <button id="downloadCsvButton" class="secondary-button" type="button">下載 CSV 範例</button>
           </div>
           <p id="sheetStatus" class="sheet-status">尚未載入 Google Sheet。</p>
         </section>
@@ -60,6 +62,6 @@
     </main>
   </div>
 
-  <script src="./app.js?v=20260614-2"></script>
+  <script src="./app.js?v=20260616-1"></script>
 </body>
 </html>

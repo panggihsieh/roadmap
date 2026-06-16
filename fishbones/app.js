@@ -1,16 +1,26 @@
 const graphContainer = document.getElementById('graph')
 const addCauseButton = document.getElementById('addCauseButton')
+const removeNodeButton = document.getElementById('removeNodeButton')
 const selectionHint = document.getElementById('selectionHint')
 const selectionBadge = document.getElementById('selectionBadge')
 const actionStatus = document.getElementById('actionStatus')
 const sheetUrlInput = document.getElementById('sheetUrlInput')
 const loadSheetButton = document.getElementById('loadSheetButton')
+const downloadCsvButton = document.getElementById('downloadCsvButton')
 const sheetStatus = document.getElementById('sheetStatus')
 const nodeLabelInput = document.getElementById('nodeLabel')
 const nodeDescriptionInput = document.getElementById('nodeDescription')
 
 const STORAGE_KEY_SHEET_URL = 'fishbones_sheet_url'
 const SHEET_TAB_NAME = 'fishbones'
+const SAMPLE_CSV_FILENAME = 'fishbones-sample.csv'
+const SAMPLE_CSV_ROWS = [
+  ['theme', 'theme_description', 'label', 'description', 'role', 'x', 'y'],
+  ['核心主題', '請在這裡輸入魚骨圖要分析的主要問題。', '人員', '訓練不足、協作落差', 'cause-top', '190', '172'],
+  ['核心主題', '請在這裡輸入魚骨圖要分析的主要問題。', '流程', '流程繁瑣、交接不清', 'cause-bottom', '312', '390'],
+  ['核心主題', '請在這裡輸入魚骨圖要分析的主要問題。', '工具', '系統限制、資料分散', 'cause-top', '420', '172'],
+  ['核心主題', '請在這裡輸入魚骨圖要分析的主要問題。', '環境', '時程壓力、外部限制', 'cause-bottom', '540', '390'],
+]
 
 const TEXT = {
   defaultTheme: '\u6838\u5fc3\u4e3b\u984c',
@@ -21,6 +31,7 @@ const TEXT = {
   selectHint: '\u8acb\u5148\u9ede\u9078\u5716\u4e0a\u7684\u7bc0\u9ede\u3002',
   defaultBadge: '\u62d6\u62c9\u7bc0\u9ede\u8abf\u6574\u4f4d\u7f6e\uff0c\u9ede\u9078\u7bc0\u9ede\u7de8\u8f2f\u5167\u5bb9',
   defaultStatus: '\u5c1a\u672a\u57f7\u884c\u65b0\u589e\u64cd\u4f5c',
+  keepEffect: '\u6838\u5fc3\u4e3b\u984c\u9700\u8981\u4fdd\u7559\uff0c\u53ef\u4ee5\u7de8\u8f2f\u4f46\u4e0d\u80fd\u79fb\u9664\u3002',
 }
 
 const state = {
@@ -84,13 +95,13 @@ function initialize() {
 
 function bindEvents() {
   addCauseButton.addEventListener('click', () => {
-    const index = state.causeCount
-    const slot = state.addSlots[index % state.addSlots.length]
+    const nextIndex = getNextCauseIndex()
+    const slot = state.addSlots[state.causeCount % state.addSlots.length]
     const newNode = makeNode({
-      id: `cause-${index + 1}`,
+      id: `cause-${nextIndex}`,
       x: slot.x,
       y: slot.y,
-      label: `${TEXT.addCause} ${index + 1}`,
+      label: `${TEXT.addCause} ${nextIndex}`,
       description: TEXT.addCauseDescription,
       role: slot.role,
       fill: '#ffe7d6',
@@ -104,9 +115,13 @@ function bindEvents() {
     updateActionStatus(`\u6309\u9215\u5df2\u89f8\u767c\uff0c\u5df2\u65b0\u589e\uff1a${newNode.label}`)
   })
 
+  removeNodeButton.addEventListener('click', removeSelectedNode)
+
   loadSheetButton.addEventListener('click', () => {
     loadSheetData(sheetUrlInput.value.trim())
   })
+
+  downloadCsvButton.addEventListener('click', downloadSampleCsv)
 
   nodeLabelInput.addEventListener('input', (event) => {
     const node = getSelectedNode()
@@ -193,6 +208,37 @@ function buildDefaultNodes() {
 function setNodes(nodes) {
   state.nodes = nodes
   state.causeCount = nodes.filter((node) => node.role !== 'effect').length
+}
+
+function downloadSampleCsv() {
+  const csvText = SAMPLE_CSV_ROWS.map((row) => row.map(escapeCsvCell).join(',')).join('\r\n')
+  const blob = new Blob([`\ufeff${csvText}`], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = SAMPLE_CSV_FILENAME
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+  updateSheetStatus('已下載 CSV 範例，請匯入 Google Sheet 並將分頁命名為 fishbones。')
+}
+
+function escapeCsvCell(value) {
+  const text = String(value)
+  if (/[",\r\n]/.test(text)) {
+    return `"${text.replaceAll('"', '""')}"`
+  }
+  return text
+}
+
+function getNextCauseIndex() {
+  const causeIndexes = state.nodes
+    .map((node) => String(node.id).match(/^cause-(\d+)$/))
+    .filter(Boolean)
+    .map((match) => Number(match[1]))
+
+  return causeIndexes.length > 0 ? Math.max(...causeIndexes) + 1 : 1
 }
 
 async function loadSheetData(url) {
@@ -558,6 +604,7 @@ function selectNode(nodeId) {
   state.selectedNodeId = nodeId
   const node = getSelectedNode()
   if (!node) {
+    clearSelection()
     return
   }
 
@@ -567,8 +614,28 @@ function selectNode(nodeId) {
   updateActionStatus(`\u76ee\u524d\u9078\u53d6\uff1a${node.label}`)
   nodeLabelInput.disabled = false
   nodeDescriptionInput.disabled = false
+  removeNodeButton.disabled = node.role === 'effect'
   nodeLabelInput.value = node.label
   nodeDescriptionInput.value = node.description
+}
+
+function removeSelectedNode() {
+  const node = getSelectedNode()
+  if (!node) {
+    clearSelection()
+    return
+  }
+
+  if (node.role === 'effect') {
+    updateActionStatus(TEXT.keepEffect)
+    return
+  }
+
+  state.nodes = state.nodes.filter((item) => item.id !== node.id)
+  state.causeCount = state.nodes.filter((item) => item.role !== 'effect').length
+  render()
+  clearSelection()
+  updateActionStatus(`\u5df2\u79fb\u9664\uff1a${node.label}`)
 }
 
 function clearSelection() {
@@ -579,6 +646,7 @@ function clearSelection() {
   updateActionStatus(TEXT.defaultStatus)
   nodeLabelInput.disabled = true
   nodeDescriptionInput.disabled = true
+  removeNodeButton.disabled = true
   nodeLabelInput.value = ''
   nodeDescriptionInput.value = ''
 }

@@ -95,6 +95,11 @@ body {
   cursor: pointer;
 }
 
+.board-toolbar button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .selection-badge {
   padding: 8px 12px;
   border-radius: 999px;
@@ -194,6 +199,12 @@ body {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+}
+
+.sheet-controls .secondary-button {
+  border: 1px solid var(--accent);
+  background: #fff;
+  color: var(--accent);
 }
 
 .sheet-status {
