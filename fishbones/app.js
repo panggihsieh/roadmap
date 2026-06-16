@@ -9,6 +9,10 @@ const loadSheetButton = document.getElementById('loadSheetButton')
 const downloadCsvButton = document.getElementById('downloadCsvButton')
 const downloadPngButton = document.getElementById('downloadPngButton')
 const sheetStatus = document.getElementById('sheetStatus')
+const studentSchoolInput = document.getElementById('studentSchool')
+const studentClassInput = document.getElementById('studentClass')
+const studentNameInput = document.getElementById('studentName')
+const studentSeatInput = document.getElementById('studentSeat')
 const nodeLabelInput = document.getElementById('nodeLabel')
 const nodeDescriptionInput = document.getElementById('nodeDescription')
 
@@ -273,6 +277,7 @@ function createFishboneCanvas() {
   drawGrid(context, width, height)
   drawExportLines(context)
   state.nodes.forEach((node) => drawExportNode(context, node))
+  drawExportStudentInfo(context, width)
   return canvas
 }
 
@@ -360,6 +365,38 @@ function drawExportNode(context, node) {
   context.textAlign = 'center'
   context.textBaseline = 'middle'
   drawWrappedText(context, node.label, node.x + node.width / 2, node.y + node.height / 2, node.width - 28, 24)
+  context.restore()
+}
+
+function drawExportStudentInfo(context, width) {
+  const infoRows = [
+    ['學校', studentSchoolInput?.value || ''],
+    ['班級', studentClassInput?.value || ''],
+    ['姓名', studentNameInput?.value || ''],
+    ['座號', studentSeatInput?.value || ''],
+  ].filter(([, value]) => String(value).trim() !== '')
+
+  if (infoRows.length === 0) {
+    return
+  }
+
+  const blockWidth = 188
+  const startX = width - blockWidth - 20
+  const startY = 18
+  const lineHeight = 28
+
+  context.save()
+  context.fillStyle = '#111'
+  context.font = '700 16px "Segoe UI", "Noto Sans TC", sans-serif'
+  context.textAlign = 'left'
+  context.textBaseline = 'middle'
+
+  infoRows.forEach(([label, value], index) => {
+    const rowY = startY + (index * lineHeight)
+    context.fillText(`${label}:`, startX, rowY)
+    context.fillText(String(value), startX + 52, rowY)
+  })
+
   context.restore()
 }
 
