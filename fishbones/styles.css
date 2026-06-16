@@ -73,10 +73,9 @@ body {
 }
 
 .board-toolbar {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: 12px;
-  flex-wrap: wrap;
   align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid rgba(123, 107, 99, 0.12);
@@ -87,13 +86,12 @@ body {
 .toolbar-actions {
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
   align-items: center;
 }
 
 .toolbar-actions-right {
   justify-content: flex-end;
-  margin-left: auto;
+  min-width: 0;
 }
 
 .board-toolbar button {
@@ -113,7 +111,9 @@ body {
 }
 
 .board-toolbar .danger-button {
-  background: #b94e1f;
+  width: 138px;
+  background: #1f1713;
+  color: var(--accent-soft);
 }
 
 .board-toolbar .secondary-toolbar-button {
@@ -123,11 +123,15 @@ body {
 }
 
 .selection-badge {
+  max-width: 260px;
   padding: 8px 12px;
   border-radius: 999px;
   background: rgba(212, 106, 58, 0.1);
   color: #75482f;
   line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .graph {
@@ -322,6 +326,20 @@ body {
 }
 
 @media (max-width: 980px) {
+  .board-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar-actions,
+  .toolbar-actions-right {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .selection-badge {
+    max-width: 100%;
+  }
+
   .workspace {
     grid-template-columns: 1fr;
   }
