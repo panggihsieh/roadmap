@@ -16,10 +16,10 @@ const SHEET_TAB_NAME = 'fishbones'
 const SAMPLE_CSV_FILENAME = 'fishbones-sample.csv'
 const SAMPLE_CSV_ROWS = [
   ['theme', 'theme_description', 'label', 'description', 'role', 'x', 'y'],
-  ['核心主題', '請在這裡輸入魚骨圖要分析的主要問題。', '人員', '訓練不足、協作落差', 'cause-top', '190', '172'],
-  ['核心主題', '請在這裡輸入魚骨圖要分析的主要問題。', '流程', '流程繁瑣、交接不清', 'cause-bottom', '312', '390'],
-  ['核心主題', '請在這裡輸入魚骨圖要分析的主要問題。', '工具', '系統限制、資料分散', 'cause-top', '420', '172'],
-  ['核心主題', '請在這裡輸入魚骨圖要分析的主要問題。', '環境', '時程壓力、外部限制', 'cause-bottom', '540', '390'],
+  ['如何提高 Scratch 編寫能力', '從基礎概念、練習方法、除錯習慣與作品分享四個面向提升 Scratch 創作能力。', '基礎概念', '熟悉角色、舞台、事件、迴圈與條件判斷。', 'cause-top', '190', '172'],
+  ['如何提高 Scratch 編寫能力', '從基礎概念、練習方法、除錯習慣與作品分享四個面向提升 Scratch 創作能力。', '專案練習', '每週完成一個小遊戲或互動動畫，累積實作經驗。', 'cause-bottom', '312', '390'],
+  ['如何提高 Scratch 編寫能力', '從基礎概念、練習方法、除錯習慣與作品分享四個面向提升 Scratch 創作能力。', '除錯習慣', '分段測試積木，觀察變數與角色行為是否符合預期。', 'cause-top', '420', '172'],
+  ['如何提高 Scratch 編寫能力', '從基礎概念、練習方法、除錯習慣與作品分享四個面向提升 Scratch 創作能力。', '作品分享', '觀看他人作品、改編範例，並請同學提供回饋。', 'cause-bottom', '540', '390'],
 ]
 
 const TEXT = {
@@ -529,7 +529,11 @@ function renderNodes() {
   state.nodes.forEach((node) => {
     const element = document.createElement('button')
     element.type = 'button'
-    element.className = `fish-node ${state.selectedNodeId === node.id ? 'is-selected' : ''}`
+    element.className = [
+      'fish-node',
+      node.role === 'effect' ? 'is-effect' : '',
+      state.selectedNodeId === node.id ? 'is-selected' : '',
+    ].filter(Boolean).join(' ')
     element.dataset.nodeId = node.id
     element.style.left = `${node.x}px`
     element.style.top = `${node.y}px`
@@ -537,6 +541,8 @@ function renderNodes() {
     element.style.height = `${node.height}px`
     element.style.background = node.fill
     element.style.borderColor = node.stroke
+    element.style.setProperty('--node-fill', node.fill)
+    element.style.setProperty('--node-stroke', node.stroke)
     element.innerHTML = `<span>${escapeHtml(node.label)}</span>`
 
     element.addEventListener('click', (event) => {

@@ -100,6 +100,10 @@ body {
   opacity: 0.45;
 }
 
+.board-toolbar .danger-button {
+  background: #b94e1f;
+}
+
 .selection-badge {
   padding: 8px 12px;
   border-radius: 999px;
@@ -158,7 +162,41 @@ body {
 }
 
 .fish-node span {
+  position: relative;
+  z-index: 1;
   pointer-events: none;
+}
+
+.fish-node.is-effect {
+  border-radius: 999px 54% 54% 999px;
+  padding-left: 22px;
+  padding-right: 34px;
+  overflow: visible;
+}
+
+.fish-node.is-effect::before {
+  content: "";
+  position: absolute;
+  left: -24px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-top: 22px solid transparent;
+  border-bottom: 22px solid transparent;
+  border-right: 28px solid var(--node-fill);
+  filter: drop-shadow(-1px 0 0 var(--node-stroke));
+  transform: translateY(-50%);
+}
+
+.fish-node.is-effect::after {
+  content: "";
+  position: absolute;
+  right: 18px;
+  top: 22px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--node-stroke);
 }
 
 .action-status {
