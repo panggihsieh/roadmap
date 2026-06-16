@@ -70,18 +70,19 @@ body {
 
 .board-card {
   overflow: hidden;
+  min-width: 0;
 }
 
 .student-info {
   position: absolute;
   top: 12px;
-  right: 14px;
+  right: 0;
   z-index: 4;
   display: grid;
   grid-template-columns: 1fr;
   gap: 4px;
-  width: min(176px, calc(100% - 28px));
-  padding: 6px 8px;
+  width: min(176px, calc(100% - 12px));
+  padding: 6px 0;
   border: 0;
   background: transparent;
   box-shadow: none;
@@ -123,7 +124,7 @@ body {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   gap: 12px;
-  align-items: center;
+  align-items: start;
   padding: 16px 20px;
   border-bottom: 1px solid rgba(123, 107, 99, 0.12);
   color: var(--muted);
@@ -262,11 +263,14 @@ body {
 .graph {
   position: relative;
   height: 620px;
+  overflow: auto;
+  overscroll-behavior: contain;
   background-image:
     linear-gradient(rgba(216, 195, 178, 0.24) 1px, transparent 1px),
     linear-gradient(90deg, rgba(216, 195, 178, 0.24) 1px, transparent 1px);
   background-size: 28px 28px;
   cursor: grab;
+  touch-action: pan-x pan-y;
 }
 
 .graph-board,
@@ -274,6 +278,13 @@ body {
 .graph-nodes {
   position: absolute;
   inset: 0;
+}
+
+.graph-board {
+  position: relative;
+  width: max(100%, 900px);
+  min-width: 900px;
+  min-height: 620px;
 }
 
 .graph-svg {
@@ -301,6 +312,8 @@ body {
   cursor: grab;
   box-shadow: 0 10px 24px rgba(92, 60, 36, 0.14);
   pointer-events: auto;
+  touch-action: none;
+  user-select: none;
 }
 
 .fish-node.is-selected {
@@ -454,8 +467,8 @@ body {
 @media (max-width: 980px) {
   .student-info {
     top: 12px;
-    right: 12px;
-    width: min(170px, calc(100% - 24px));
+    right: 0;
+    width: min(170px, calc(100% - 12px));
   }
 
   .board-toolbar {
@@ -481,7 +494,42 @@ body {
   }
 
   .graph {
-    height: 540px;
+    height: 560px;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding: 16px;
+  }
+
+  .hero {
+    margin-bottom: 16px;
+  }
+
+  .subtitle {
+    font-size: 15px;
+  }
+
+  .board-toolbar {
+    padding: 14px 16px;
+  }
+
+  .panel {
+    padding: 16px;
+  }
+
+  .graph {
+    height: 500px;
+    background-size: 24px 24px;
+  }
+
+  .fish-node {
+    font-size: 16px;
+  }
+
+  .action-status {
+    line-height: 1.5;
   }
 }
 

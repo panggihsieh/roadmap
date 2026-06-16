@@ -16,6 +16,8 @@ const STORAGE_KEY_SHEET_URL = 'fishbones_sheet_url'
 const SHEET_TAB_NAME = 'fishbones'
 const SAMPLE_CSV_FILENAME = 'fishbones-sample.csv'
 const PNG_FILENAME = 'fishbone-diagram.png'
+const BOARD_WIDTH = 900
+const BOARD_HEIGHT = 620
 const FISH_SPINE_Y = 305
 const FISH_SPINE_START_X = 128
 const FISH_SPINE_END_X = 700
@@ -62,9 +64,13 @@ const state = {
 
 const board = document.createElement('div')
 board.className = 'graph-board'
+board.style.width = `${BOARD_WIDTH}px`
+board.style.height = `${BOARD_HEIGHT}px`
 
 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
 svg.classList.add('graph-svg')
+svg.setAttribute('viewBox', `0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`)
+svg.setAttribute('preserveAspectRatio', 'none')
 
 const linesLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g')
 linesLayer.classList.add('graph-lines')
@@ -157,6 +163,7 @@ function bindEvents() {
 
   graphContainer.addEventListener('pointermove', onPointerMove)
   graphContainer.addEventListener('pointerup', stopDragging)
+  graphContainer.addEventListener('pointercancel', stopDragging)
   graphContainer.addEventListener('pointerleave', stopDragging)
   graphContainer.addEventListener('click', (event) => {
     if (event.target === graphContainer || event.target === board || event.target === svg || event.target === linesLayer) {
@@ -250,8 +257,8 @@ function createFishboneCanvas() {
   const padding = 36
   const maxNodeX = Math.max(...state.nodes.map((node) => node.x + node.width), 900)
   const maxNodeY = Math.max(...state.nodes.map((node) => node.y + node.height), 620)
-  const width = Math.max(graphContainer.clientWidth, maxNodeX + padding)
-  const height = Math.max(graphContainer.clientHeight, maxNodeY + padding)
+  const width = Math.max(board.scrollWidth, maxNodeX + padding)
+  const height = Math.max(board.scrollHeight, maxNodeY + padding)
   const scale = Math.max(window.devicePixelRatio || 1, 2)
   const canvas = document.createElement('canvas')
   canvas.width = Math.round(width * scale)
@@ -764,7 +771,9 @@ function startDragging(event, nodeId) {
     return
   }
 
-  state.graphRect = graphContainer.getBoundingClientRect()
+  event.preventDefault()
+  event.currentTarget.setPointerCapture?.(event.pointerId)
+  state.graphRect = board.getBoundingClientRect()
   state.dragging = {
     nodeId,
     offsetX: event.clientX - state.graphRect.left - node.x,
@@ -782,8 +791,8 @@ function onPointerMove(event) {
     return
   }
 
-  const maxX = graphContainer.clientWidth - node.width
-  const maxY = graphContainer.clientHeight - node.height
+  const maxX = board.clientWidth - node.width
+  const maxY = board.clientHeight - node.height
   node.x = clamp(event.clientX - state.graphRect.left - state.dragging.offsetX, 0, maxX)
   node.y = clamp(event.clientY - state.graphRect.top - state.dragging.offsetY, 0, maxY)
   render()
