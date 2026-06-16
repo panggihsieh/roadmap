@@ -7,7 +7,6 @@ const actionStatus = document.getElementById('actionStatus')
 const sheetUrlInput = document.getElementById('sheetUrlInput')
 const loadSheetButton = document.getElementById('loadSheetButton')
 const downloadCsvButton = document.getElementById('downloadCsvButton')
-const printPdfButton = document.getElementById('printPdfButton')
 const downloadPngButton = document.getElementById('downloadPngButton')
 const sheetStatus = document.getElementById('sheetStatus')
 const nodeLabelInput = document.getElementById('nodeLabel')
@@ -133,7 +132,6 @@ function bindEvents() {
   })
 
   downloadCsvButton.addEventListener('click', downloadSampleCsv)
-  printPdfButton.addEventListener('click', printFishbonePdf)
   downloadPngButton.addEventListener('click', downloadFishbonePng)
 
   nodeLabelInput.addEventListener('input', (event) => {
@@ -235,11 +233,6 @@ function downloadSampleCsv() {
   link.remove()
   URL.revokeObjectURL(url)
   updateSheetStatus('已下載 CSV 範例，請匯入 Google Sheet 並將分頁命名為 fishbones。')
-}
-
-function printFishbonePdf() {
-  updateActionStatus('正在開啟列印視窗，可選擇另存為 PDF。')
-  window.print()
 }
 
 function downloadFishbonePng() {
@@ -356,10 +349,10 @@ function drawExportNode(context, node) {
 
   context.shadowColor = 'transparent'
   context.fillStyle = '#2f241f'
-  context.font = '700 16px "Segoe UI", "Noto Sans TC", sans-serif'
+  context.font = '700 18px "Segoe UI", "Noto Sans TC", sans-serif'
   context.textAlign = 'center'
   context.textBaseline = 'middle'
-  drawWrappedText(context, node.label, node.x + node.width / 2, node.y + node.height / 2, node.width - 28, 22)
+  drawWrappedText(context, node.label, node.x + node.width / 2, node.y + node.height / 2, node.width - 28, 24)
   context.restore()
 }
 
