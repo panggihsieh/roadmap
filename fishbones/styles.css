@@ -72,6 +72,53 @@ body {
   overflow: hidden;
 }
 
+.student-info {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  width: min(194px, calc(100% - 28px));
+  padding: 8px 10px;
+  border: 3px solid #d41414;
+  background: rgba(255, 250, 242, 0.94);
+  box-shadow: 0 6px 16px rgba(47, 36, 31, 0.18);
+}
+
+.student-info label {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 7px;
+  align-items: center;
+  color: #e00000;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.student-info input {
+  width: 100%;
+  min-width: 0;
+  height: 31px;
+  border: 2px solid #f1e600;
+  border-radius: 0;
+  padding: 3px 6px;
+  color: #e00000;
+  background: #fff700;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: inset 0 0 0 1px rgba(212, 20, 20, 0.18);
+}
+
+.student-info input:focus {
+  outline: 3px solid rgba(212, 20, 20, 0.24);
+  border-color: #d41414;
+}
+
 .board-toolbar {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
@@ -404,6 +451,12 @@ body {
 }
 
 @media (max-width: 980px) {
+  .student-info {
+    top: 12px;
+    right: 12px;
+    width: min(184px, calc(100% - 24px));
+  }
+
   .board-toolbar {
     grid-template-columns: 1fr;
   }
@@ -441,6 +494,30 @@ body {
   .board-toolbar,
   .action-status {
     display: none;
+  }
+
+  .student-info {
+    top: 10px;
+    right: 10px;
+    width: 178px;
+    margin: 0;
+    padding: 7px 9px;
+    border: 2px solid #111;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  .student-info label {
+    grid-template-columns: 46px minmax(0, 1fr);
+    color: #111;
+    font-size: 16px;
+  }
+
+  .student-info input {
+    border-color: #333;
+    box-shadow: none;
+    color: #111;
+    background: #fff;
   }
 
   .page {

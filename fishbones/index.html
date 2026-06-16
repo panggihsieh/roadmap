@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>&#39770;&#39592;&#22294;&#20114;&#21205;&#32232;&#36655;&#22120;</title>
   <link rel="preconnect" href="https://unpkg.com">
-  <link rel="stylesheet" href="./styles.css?v=20260616-6">
+  <link rel="stylesheet" href="./styles.css?v=20260616-7">
 </head>
 <body>
   <div class="page">
@@ -34,7 +34,26 @@
             </span>
           </div>
         </div>
-        <div id="graph" class="graph"></div>
+        <div id="graph" class="graph">
+          <div class="student-info" role="group" aria-label="學生資料">
+            <label>
+              學校:
+              <input id="studentSchool" name="school" type="text" autocomplete="organization">
+            </label>
+            <label>
+              班級:
+              <input id="studentClass" name="class" type="text" autocomplete="off">
+            </label>
+            <label>
+              姓名:
+              <input id="studentName" name="name" type="text" autocomplete="name">
+            </label>
+            <label>
+              座號:
+              <input id="studentSeat" name="seat" type="text" inputmode="numeric" autocomplete="off">
+            </label>
+          </div>
+        </div>
         <p id="actionStatus" class="action-status">
           &#23578;&#26410;&#22519;&#34892;&#26032;&#22686;&#25805;&#20316;
         </p>
@@ -69,6 +88,6 @@
     </main>
   </div>
 
-  <script src="./app.js?v=20260616-6"></script>
+  <script src="./app.js?v=20260616-7"></script>
 </body>
 </html>
