@@ -7,6 +7,8 @@ const actionStatus = document.getElementById('actionStatus')
 const sheetUrlInput = document.getElementById('sheetUrlInput')
 const loadSheetButton = document.getElementById('loadSheetButton')
 const downloadCsvButton = document.getElementById('downloadCsvButton')
+const printPdfButton = document.getElementById('printPdfButton')
+const downloadPngButton = document.getElementById('downloadPngButton')
 const sheetStatus = document.getElementById('sheetStatus')
 const nodeLabelInput = document.getElementById('nodeLabel')
 const nodeDescriptionInput = document.getElementById('nodeDescription')
@@ -14,6 +16,7 @@ const nodeDescriptionInput = document.getElementById('nodeDescription')
 const STORAGE_KEY_SHEET_URL = 'fishbones_sheet_url'
 const SHEET_TAB_NAME = 'fishbones'
 const SAMPLE_CSV_FILENAME = 'fishbones-sample.csv'
+const PNG_FILENAME = 'fishbone-diagram.png'
 const SAMPLE_CSV_ROWS = [
   ['theme', 'theme_description', 'label', 'description', 'role', 'x', 'y'],
   ['如何提高 Scratch 編寫能力', '從基礎概念、練習方法、除錯習慣與作品分享四個面向提升 Scratch 創作能力。', '基礎概念', '熟悉角色、舞台、事件、迴圈與條件判斷。', 'cause-top', '190', '172'],
@@ -122,6 +125,8 @@ function bindEvents() {
   })
 
   downloadCsvButton.addEventListener('click', downloadSampleCsv)
+  printPdfButton.addEventListener('click', printFishbonePdf)
+  downloadPngButton.addEventListener('click', downloadFishbonePng)
 
   nodeLabelInput.addEventListener('input', (event) => {
     const node = getSelectedNode()
@@ -222,6 +227,178 @@ function downloadSampleCsv() {
   link.remove()
   URL.revokeObjectURL(url)
   updateSheetStatus('已下載 CSV 範例，請匯入 Google Sheet 並將分頁命名為 fishbones。')
+}
+
+function printFishbonePdf() {
+  updateActionStatus('正在開啟列印視窗，可選擇另存為 PDF。')
+  window.print()
+}
+
+function downloadFishbonePng() {
+  const canvas = createFishboneCanvas()
+  const link = document.createElement('a')
+  link.href = canvas.toDataURL('image/png')
+  link.download = PNG_FILENAME
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  updateActionStatus('已下載 PNG 圖檔。')
+}
+
+function createFishboneCanvas() {
+  const padding = 36
+  const maxNodeX = Math.max(...state.nodes.map((node) => node.x + node.width), 900)
+  const maxNodeY = Math.max(...state.nodes.map((node) => node.y + node.height), 620)
+  const width = Math.max(graphContainer.clientWidth, maxNodeX + padding)
+  const height = Math.max(graphContainer.clientHeight, maxNodeY + padding)
+  const scale = Math.max(window.devicePixelRatio || 1, 2)
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.round(width * scale)
+  canvas.height = Math.round(height * scale)
+  canvas.style.width = `${width}px`
+  canvas.style.height = `${height}px`
+
+  const context = canvas.getContext('2d')
+  context.scale(scale, scale)
+  context.fillStyle = '#fffaf2'
+  context.fillRect(0, 0, width, height)
+  drawGrid(context, width, height)
+  drawExportLines(context)
+  state.nodes.forEach((node) => drawExportNode(context, node))
+  return canvas
+}
+
+function drawGrid(context, width, height) {
+  context.strokeStyle = 'rgba(216, 195, 178, 0.36)'
+  context.lineWidth = 1
+
+  for (let x = 0; x <= width; x += 28) {
+    context.beginPath()
+    context.moveTo(x, 0)
+    context.lineTo(x, height)
+    context.stroke()
+  }
+
+  for (let y = 0; y <= height; y += 28) {
+    context.beginPath()
+    context.moveTo(0, y)
+    context.lineTo(width, y)
+    context.stroke()
+  }
+}
+
+function drawExportLines(context) {
+  context.lineCap = 'round'
+  context.strokeStyle = '#2f241f'
+  context.lineWidth = 4
+  drawCanvasLine(context, 120, 305, 670, 305)
+
+  const effectNode = state.nodes.find((node) => node.role === 'effect')
+  if (effectNode) {
+    context.strokeStyle = '#7b6b63'
+    context.lineWidth = 2
+    drawCanvasLine(context, 670, 305, effectNode.x, effectNode.y + effectNode.height / 2)
+  }
+
+  state.nodes
+    .filter((node) => node.role !== 'effect')
+    .forEach((node) => {
+      const startX = node.x + node.width / 2
+      const startY = node.role === 'cause-top' ? node.y + node.height : node.y
+      context.strokeStyle = '#7b6b63'
+      context.lineWidth = 2
+      drawCanvasLine(context, startX, startY, 670, 305)
+    })
+}
+
+function drawCanvasLine(context, x1, y1, x2, y2) {
+  context.beginPath()
+  context.moveTo(x1, y1)
+  context.lineTo(x2, y2)
+  context.stroke()
+}
+
+function drawExportNode(context, node) {
+  context.save()
+  context.fillStyle = node.fill
+  context.strokeStyle = node.stroke
+  context.lineWidth = state.selectedNodeId === node.id ? 4 : 2
+  context.shadowColor = 'rgba(92, 60, 36, 0.14)'
+  context.shadowBlur = 18
+  context.shadowOffsetY = 8
+
+  if (node.role === 'effect') {
+    drawFishEffectNode(context, node)
+  } else {
+    drawRoundedRect(context, node.x, node.y, node.width, node.height, 18)
+  }
+
+  context.shadowColor = 'transparent'
+  context.fillStyle = '#2f241f'
+  context.font = '700 16px "Segoe UI", "Noto Sans TC", sans-serif'
+  context.textAlign = 'center'
+  context.textBaseline = 'middle'
+  drawWrappedText(context, node.label, node.x + node.width / 2, node.y + node.height / 2, node.width - 28, 22)
+  context.restore()
+}
+
+function drawFishEffectNode(context, node) {
+  const tailWidth = 28
+  const radius = node.height / 2
+  context.beginPath()
+  context.moveTo(node.x, node.y + node.height / 2)
+  context.lineTo(node.x - tailWidth, node.y + node.height / 2 - 22)
+  context.lineTo(node.x - tailWidth, node.y + node.height / 2 + 22)
+  context.closePath()
+  context.fill()
+  context.stroke()
+  drawRoundedRect(context, node.x, node.y, node.width, node.height, radius)
+  context.beginPath()
+  context.arc(node.x + node.width - 18, node.y + 22, 3, 0, Math.PI * 2)
+  context.fillStyle = node.stroke
+  context.fill()
+}
+
+function drawRoundedRect(context, x, y, width, height, radius) {
+  const safeRadius = Math.min(radius, width / 2, height / 2)
+  context.beginPath()
+  context.moveTo(x + safeRadius, y)
+  context.lineTo(x + width - safeRadius, y)
+  context.quadraticCurveTo(x + width, y, x + width, y + safeRadius)
+  context.lineTo(x + width, y + height - safeRadius)
+  context.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height)
+  context.lineTo(x + safeRadius, y + height)
+  context.quadraticCurveTo(x, y + height, x, y + height - safeRadius)
+  context.lineTo(x, y + safeRadius)
+  context.quadraticCurveTo(x, y, x + safeRadius, y)
+  context.closePath()
+  context.fill()
+  context.stroke()
+}
+
+function drawWrappedText(context, text, centerX, centerY, maxWidth, lineHeight) {
+  const chars = Array.from(String(text))
+  const lines = []
+  let line = ''
+
+  chars.forEach((char) => {
+    const nextLine = `${line}${char}`
+    if (line && context.measureText(nextLine).width > maxWidth) {
+      lines.push(line)
+      line = char
+    } else {
+      line = nextLine
+    }
+  })
+
+  if (line) {
+    lines.push(line)
+  }
+
+  const startY = centerY - ((lines.length - 1) * lineHeight) / 2
+  lines.forEach((item, index) => {
+    context.fillText(item, centerX, startY + index * lineHeight)
+  })
 }
 
 function escapeCsvCell(value) {

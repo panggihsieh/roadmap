@@ -84,6 +84,18 @@ body {
   font-size: 14px;
 }
 
+.toolbar-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.toolbar-actions-right {
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
 .board-toolbar button {
   border: 0;
   border-radius: 999px;
@@ -102,6 +114,12 @@ body {
 
 .board-toolbar .danger-button {
   background: #b94e1f;
+}
+
+.board-toolbar .secondary-toolbar-button {
+  border: 1px solid var(--accent);
+  background: #fff;
+  color: var(--accent);
 }
 
 .selection-badge {
@@ -306,5 +324,35 @@ body {
 
   .graph {
     height: 540px;
+  }
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .hero,
+  .panel,
+  .board-toolbar,
+  .action-status {
+    display: none;
+  }
+
+  .page {
+    padding: 0;
+  }
+
+  .workspace {
+    display: block;
+  }
+
+  .board-card {
+    border: 0;
+    box-shadow: none;
+  }
+
+  .graph {
+    height: 620px;
   }
 }
