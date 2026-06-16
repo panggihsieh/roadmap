@@ -17,6 +17,10 @@ const STORAGE_KEY_SHEET_URL = 'fishbones_sheet_url'
 const SHEET_TAB_NAME = 'fishbones'
 const SAMPLE_CSV_FILENAME = 'fishbones-sample.csv'
 const PNG_FILENAME = 'fishbone-diagram.png'
+const FISH_OUTLINE_PATHS = [
+  'M70 110 C245 130 435 225 500 305 C435 385 245 480 70 500 C155 400 155 210 70 110',
+  'M700 305 C700 220 708 180 728 170 C785 172 835 210 865 250 C882 275 875 296 845 305 C872 315 875 336 848 360 C815 400 775 430 728 425 C708 410 700 385 700 305',
+]
 const SAMPLE_CSV_ROWS = [
   ['theme', 'theme_description', 'label', 'description', 'role', 'x', 'y'],
   ['如何提高 Scratch 編寫能力', '從基礎概念、練習方法、除錯習慣與作品分享四個面向提升 Scratch 創作能力。', '基礎概念', '熟悉角色、舞台、事件、迴圈與條件判斷。', 'cause-top', '190', '172'],
@@ -289,9 +293,10 @@ function drawGrid(context, width, height) {
 
 function drawExportLines(context) {
   context.lineCap = 'round'
+  drawExportFishOutline(context)
   context.strokeStyle = '#2f241f'
-  context.lineWidth = 4
-  drawCanvasLine(context, 120, 305, 670, 305)
+  context.lineWidth = 8
+  drawCanvasLine(context, 500, 305, 700, 305)
 
   const effectNode = state.nodes.find((node) => node.role === 'effect')
   if (effectNode) {
@@ -309,6 +314,18 @@ function drawExportLines(context) {
       context.lineWidth = 2
       drawCanvasLine(context, startX, startY, 670, 305)
     })
+}
+
+function drawExportFishOutline(context) {
+  context.save()
+  context.strokeStyle = '#111'
+  context.lineWidth = 8
+  context.lineJoin = 'round'
+  context.lineCap = 'round'
+  FISH_OUTLINE_PATHS.forEach((path) => {
+    context.stroke(new Path2D(path))
+  })
+  context.restore()
 }
 
 function drawCanvasLine(context, x1, y1, x2, y2) {
@@ -676,14 +693,16 @@ function render() {
 
 function renderLines() {
   linesLayer.innerHTML = ''
+  renderFishOutline()
 
   const spine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-  spine.setAttribute('x1', '120')
+  spine.setAttribute('x1', '500')
   spine.setAttribute('y1', '305')
-  spine.setAttribute('x2', '670')
+  spine.setAttribute('x2', '700')
   spine.setAttribute('y2', '305')
   spine.setAttribute('stroke', '#2f241f')
-  spine.setAttribute('stroke-width', '4')
+  spine.setAttribute('stroke-width', '8')
+  spine.setAttribute('stroke-linecap', 'round')
   linesLayer.appendChild(spine)
 
   const effectNode = state.nodes.find((node) => node.role === 'effect')
@@ -698,6 +717,12 @@ function renderLines() {
       const startY = node.role === 'cause-top' ? node.y + node.height : node.y
       linesLayer.appendChild(createLine(startX, startY, 670, 305, '#7b6b63', 2))
     })
+}
+
+function renderFishOutline() {
+  FISH_OUTLINE_PATHS.forEach((path) => {
+    linesLayer.appendChild(createPath(path, '#111', 8))
+  })
 }
 
 function renderNodes() {
@@ -859,6 +884,17 @@ function createLine(x1, y1, x2, y2, stroke, strokeWidth) {
   line.setAttribute('stroke', stroke)
   line.setAttribute('stroke-width', String(strokeWidth))
   return line
+}
+
+function createPath(d, stroke, strokeWidth) {
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  path.setAttribute('d', d)
+  path.setAttribute('fill', 'none')
+  path.setAttribute('stroke', stroke)
+  path.setAttribute('stroke-width', String(strokeWidth))
+  path.setAttribute('stroke-linecap', 'round')
+  path.setAttribute('stroke-linejoin', 'round')
+  return path
 }
 
 function clamp(value, min, max) {
