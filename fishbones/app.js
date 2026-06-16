@@ -17,9 +17,13 @@ const STORAGE_KEY_SHEET_URL = 'fishbones_sheet_url'
 const SHEET_TAB_NAME = 'fishbones'
 const SAMPLE_CSV_FILENAME = 'fishbones-sample.csv'
 const PNG_FILENAME = 'fishbone-diagram.png'
+const FISH_SPINE_Y = 305
+const FISH_SPINE_START_X = 128
+const FISH_SPINE_END_X = 700
+const FISH_BONE_JOINT_X = 670
 const FISH_OUTLINE_PATHS = [
-  'M70 110 C245 130 435 225 500 305 C435 385 245 480 70 500 C155 400 155 210 70 110',
-  'M700 305 C700 220 708 180 728 170 C785 172 835 210 865 250 C882 275 875 296 845 305 C872 315 875 336 848 360 C815 400 775 430 728 425 C708 410 700 385 700 305',
+  'M72 278 C88 288 108 298 128 305 C108 312 88 322 72 332 C82 314 82 296 72 278',
+  `M${FISH_SPINE_END_X} ${FISH_SPINE_Y} C${FISH_SPINE_END_X} 220 708 180 728 170 C785 172 835 210 865 250 C882 275 875 296 845 ${FISH_SPINE_Y} C872 315 875 336 848 360 C815 400 775 430 728 425 C708 410 ${FISH_SPINE_END_X} 385 ${FISH_SPINE_END_X} ${FISH_SPINE_Y}`,
 ]
 const SAMPLE_CSV_ROWS = [
   ['theme', 'theme_description', 'label', 'description', 'role', 'x', 'y'],
@@ -296,13 +300,13 @@ function drawExportLines(context) {
   drawExportFishOutline(context)
   context.strokeStyle = '#2f241f'
   context.lineWidth = 8
-  drawCanvasLine(context, 500, 305, 700, 305)
+  drawCanvasLine(context, FISH_SPINE_START_X, FISH_SPINE_Y, FISH_SPINE_END_X, FISH_SPINE_Y)
 
   const effectNode = state.nodes.find((node) => node.role === 'effect')
   if (effectNode) {
     context.strokeStyle = '#7b6b63'
     context.lineWidth = 2
-    drawCanvasLine(context, 670, 305, effectNode.x, effectNode.y + effectNode.height / 2)
+    drawCanvasLine(context, FISH_BONE_JOINT_X, FISH_SPINE_Y, effectNode.x, effectNode.y + effectNode.height / 2)
   }
 
   state.nodes
@@ -312,7 +316,7 @@ function drawExportLines(context) {
       const startY = node.role === 'cause-top' ? node.y + node.height : node.y
       context.strokeStyle = '#7b6b63'
       context.lineWidth = 2
-      drawCanvasLine(context, startX, startY, 670, 305)
+      drawCanvasLine(context, startX, startY, FISH_BONE_JOINT_X, FISH_SPINE_Y)
     })
 }
 
@@ -696,10 +700,10 @@ function renderLines() {
   renderFishOutline()
 
   const spine = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-  spine.setAttribute('x1', '500')
-  spine.setAttribute('y1', '305')
-  spine.setAttribute('x2', '700')
-  spine.setAttribute('y2', '305')
+  spine.setAttribute('x1', String(FISH_SPINE_START_X))
+  spine.setAttribute('y1', String(FISH_SPINE_Y))
+  spine.setAttribute('x2', String(FISH_SPINE_END_X))
+  spine.setAttribute('y2', String(FISH_SPINE_Y))
   spine.setAttribute('stroke', '#2f241f')
   spine.setAttribute('stroke-width', '8')
   spine.setAttribute('stroke-linecap', 'round')
@@ -707,7 +711,7 @@ function renderLines() {
 
   const effectNode = state.nodes.find((node) => node.role === 'effect')
   if (effectNode) {
-    linesLayer.appendChild(createLine(670, 305, effectNode.x, effectNode.y + effectNode.height / 2, '#7b6b63', 2))
+    linesLayer.appendChild(createLine(FISH_BONE_JOINT_X, FISH_SPINE_Y, effectNode.x, effectNode.y + effectNode.height / 2, '#7b6b63', 2))
   }
 
   state.nodes
@@ -715,7 +719,7 @@ function renderLines() {
     .forEach((node) => {
       const startX = node.x + node.width / 2
       const startY = node.role === 'cause-top' ? node.y + node.height : node.y
-      linesLayer.appendChild(createLine(startX, startY, 670, 305, '#7b6b63', 2))
+      linesLayer.appendChild(createLine(startX, startY, FISH_BONE_JOINT_X, FISH_SPINE_Y, '#7b6b63', 2))
     })
 }
 
