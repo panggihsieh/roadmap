@@ -22,6 +22,7 @@ const SAMPLE_CSV_FILENAME = 'fishbones-sample.csv'
 const PNG_FILENAME = 'fishbone-diagram.png'
 const BOARD_WIDTH = 900
 const BOARD_HEIGHT = 620
+const LASER_CUT_COLOR = 'rgb(255, 0, 0)'
 const FISH_SPINE_Y = 305
 const FISH_SPINE_START_X = 128
 const FISH_SPINE_END_X = 700
@@ -303,13 +304,13 @@ function drawGrid(context, width, height) {
 function drawExportLines(context) {
   context.lineCap = 'round'
   drawExportFishOutline(context)
-  context.strokeStyle = '#2f241f'
+  context.strokeStyle = LASER_CUT_COLOR
   context.lineWidth = 8
   drawCanvasLine(context, FISH_SPINE_START_X, FISH_SPINE_Y, FISH_SPINE_END_X, FISH_SPINE_Y)
 
   const effectNode = state.nodes.find((node) => node.role === 'effect')
   if (effectNode) {
-    context.strokeStyle = '#7b6b63'
+    context.strokeStyle = LASER_CUT_COLOR
     context.lineWidth = 2
     drawCanvasLine(context, FISH_BONE_JOINT_X, FISH_SPINE_Y, effectNode.x, effectNode.y + effectNode.height / 2)
   }
@@ -319,7 +320,7 @@ function drawExportLines(context) {
     .forEach((node) => {
       const startX = node.x + node.width / 2
       const startY = node.role === 'cause-top' ? node.y + node.height : node.y
-      context.strokeStyle = '#7b6b63'
+      context.strokeStyle = LASER_CUT_COLOR
       context.lineWidth = 2
       drawCanvasLine(context, startX, startY, FISH_BONE_JOINT_X, FISH_SPINE_Y)
     })
@@ -327,7 +328,7 @@ function drawExportLines(context) {
 
 function drawExportFishOutline(context) {
   context.save()
-  context.strokeStyle = '#111'
+  context.strokeStyle = LASER_CUT_COLOR
   context.lineWidth = 8
   context.lineJoin = 'round'
   context.lineCap = 'round'
@@ -741,14 +742,14 @@ function renderLines() {
   spine.setAttribute('y1', String(FISH_SPINE_Y))
   spine.setAttribute('x2', String(FISH_SPINE_END_X))
   spine.setAttribute('y2', String(FISH_SPINE_Y))
-  spine.setAttribute('stroke', '#2f241f')
+  spine.setAttribute('stroke', LASER_CUT_COLOR)
   spine.setAttribute('stroke-width', '8')
   spine.setAttribute('stroke-linecap', 'round')
   linesLayer.appendChild(spine)
 
   const effectNode = state.nodes.find((node) => node.role === 'effect')
   if (effectNode) {
-    linesLayer.appendChild(createLine(FISH_BONE_JOINT_X, FISH_SPINE_Y, effectNode.x, effectNode.y + effectNode.height / 2, '#7b6b63', 2))
+    linesLayer.appendChild(createLine(FISH_BONE_JOINT_X, FISH_SPINE_Y, effectNode.x, effectNode.y + effectNode.height / 2, LASER_CUT_COLOR, 2))
   }
 
   state.nodes
@@ -756,13 +757,13 @@ function renderLines() {
     .forEach((node) => {
       const startX = node.x + node.width / 2
       const startY = node.role === 'cause-top' ? node.y + node.height : node.y
-      linesLayer.appendChild(createLine(startX, startY, FISH_BONE_JOINT_X, FISH_SPINE_Y, '#7b6b63', 2))
+      linesLayer.appendChild(createLine(startX, startY, FISH_BONE_JOINT_X, FISH_SPINE_Y, LASER_CUT_COLOR, 2))
     })
 }
 
 function renderFishOutline() {
   FISH_OUTLINE_PATHS.forEach((path) => {
-    linesLayer.appendChild(createPath(path, '#111', 8))
+    linesLayer.appendChild(createPath(path, LASER_CUT_COLOR, 8))
   })
 }
 
